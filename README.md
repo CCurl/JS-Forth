@@ -68,13 +68,13 @@ Include the interpreter in your HTML file:
 <body>
   <h1>JS-Forth v2026.10.04 - Chris Curl</h1>
   <input 
-    id="forth-repl" 
+    id="forth-tib" 
     type="text" 
     placeholder="Enter Forth code" 
     autofocus
     onkeydown="if (event.key==='Enter') { repl(); }">
   <br>
-  <textarea id="forth-input" rows="10" cols="50" style="margin-top: 10px;"></textarea>
+  <textarea id="forth-block" rows="10" cols="50" style="margin-top: 10px;"></textarea>
   <button onclick="runForth(undefined)">Run</button>
   <pre id="forth-output"></pre>
   

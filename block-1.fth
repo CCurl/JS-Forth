@@ -6,5 +6,7 @@ cr 355 113 / . cr
 s" -test" type ." -another"
 : tt if 65 emit exit then 66 emit ; cr 1 tt 0 tt
 : tf 10 for i . next ; space tf
-: bm 100000000 for next ; cr bm
+: k 1000 * ; : mil k k ;
+: bm for next ." done" ; cr bm
 ." -done" cr words
+: dump for dup . ." - " dup @ . 1 + cr next drop ;

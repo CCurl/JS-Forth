@@ -1,8 +1,9 @@
 // jsforth.js - (c) Chris Curl, MIT license
 
   mem = [], dictionary = [];
-  sBs = 0,   rBs = 50,  lBs = 100;  // Data, Return, Loop stack bases
-  sSp = sBs, rSp = rBs, lSp = lBs;  // Stack pointers
+  dstk = 0,   dsp = dstk, dse = 49;   // Data stack
+  rstk = 50,  rsp = rstk, rse = 99;   // Return stack
+  lstk = 100, lsp = lstk, lse = 149;  // Loop stack
   here = 150, last = -1, pc = -1;
   tib = '', wd = '';
   pos = 0, tibLen = 0;
@@ -15,17 +16,21 @@
   }
 
   function under()     { throw new Error('Stack underflow'); }
-  function push(val)   { mem[++sSp] = val; }
-  function rPush(val)  { mem[++rSp] = val; }
-  function lPush(val)  { mem[++lSp] = val; }
-  function pop()       { return (sSp > sBs) ? mem[sSp--] : under(); }
-  function rPop()      { return (rSp > rBs) ? mem[rSp--] : undefined; }
-  function lPop()      { return (lSp > lBs) ? mem[lSp--] : undefined; }
-  function TOS()       { return mem[sSp]; }
-  function NOS()       { return mem[sSp-1]; }
-  function setTOS(val) { mem[sSp] = val; }
-  function setNOS(val) { mem[sSp-1] = val; }
+  function push(val)   { if (dsp < dse) mem[++dsp] = val; }
+  function rPush(val)  { if (rsp < rse) mem[++rsp] = val; }
+  function lPush(val)  { if (lsp < lse) mem[++lsp] = val; }
+  function pop()       { return (dsp > dstk) ? mem[dsp--] : under(); }
+  function rPop()      { return (rsp > rstk) ? mem[rsp--] : undefined; }
+  function lPop()      { return (lsp > lstk) ? mem[lsp--] : undefined; }
+  function TOS()       { return mem[dsp]; }
+  function NOS()       { return mem[dsp-1]; }
+  function setTOS(val) { mem[dsp] = val; }
+  function setNOS(val) { mem[dsp-1] = val; }
   function Comma(x)    { mem[here++] = x; }
+  function L0()        { return mem[lsp]; }
+  function L1()        { return mem[lsp-1]; }
+  function L2()        { return mem[lsp-2]; }
+  function unloop()    { lPop(); lPop(); lPop(); }
   function exit()      { pc = rPop(); }
   function lit()       { push(mem[pc++]); }
   function jmp()       { tgt = mem[pc++]; pc = tgt; }
@@ -81,8 +86,8 @@
     definePrim(',',      () => { Comma(pop()); });
     definePrim('.',      () => { dot(pop()); });
     definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
-    definePrim('i',      () => { push(mem[lSp]); });
-    definePrim('next',   () => { if (++mem[lSp] < mem[lSp-1]) { pc = mem[lSp-2]; } else { lSp -= 3; } });
+    definePrim('i',      () => { push(L0()); });
+    definePrim('next',   () => { if (L0() < L1()) { ++mem[lsp]; pc=L2(); } else { unloop(); } });
     definePrim('emit',   () => { emit(pop()); });
     definePrim('exit',   () => { exit(); });
     definePrim('type',   () => { doType(); });
@@ -183,7 +188,7 @@
 definePrimitives();
 
 function runForth(src) {
-  const input = src ?? document.getElementById('forth-input').value;
+  const input = src ?? document.getElementById('forth-block').value;
   const output = document.getElementById('forth-output');
   const lines = [];
   const origLog = console.log;

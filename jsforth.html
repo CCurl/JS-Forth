@@ -1,17 +1,21 @@
 <html>
   <head>
   <title>JS-Forth</title>
-  <link rel="stylesheet" href="./jsforth.css">
   </head>
   <body>
     <h1>JS-Forth v2026.10.04 - Chris Curl</h1>
-    <input 
-      id="forth-repl" type="text" placeholder="Enter Forth code" autofocus
-      onkeydown="if (event.key==='Enter') { repl(); }">
-    <br>
-    <textarea id="forth-input" rows="10" cols="50" style="margin-top: 10px;"></textarea>
-    <button onclick="runForth(undefined)">Run</button>
-    <pre id="forth-output"></pre>
+    <div style="display: flex; gap: 10px; align-items: flex-start;">
+      <input 
+        id="forth-tib" type="text" placeholder="Enter Forth code" autofocus
+        onkeydown="if (event.key==='Enter') { repl(); }" size="64">
+      <button onclick="runForth(undefined)">Load</button>
+    </div>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <textarea id="forth-output" rows="16" cols="64" readonly></textarea>
+      <textarea id="forth-block" rows="16" cols="64" maxlength="1023"></textarea>
+      <textarea id="forth-hist" rows="16" cols="32" readonly
+        onkeydown="if (event.ctrlKey && event.key==='Enter') { execHist(); }"></textarea>
+    </div>
     <script src="./jsforth.js"></script>
     <script type="application/forth">
       ." JS-Forth v2026.10.04 - Chris Curl"
@@ -19,9 +23,33 @@
     </script>
     <script>
       function repl() {
-        runForth(document.getElementById('forth-repl').value);
-        document.getElementById('forth-repl').value='';
+        var ln = document.getElementById('forth-tib').value;
+        document.getElementById('forth-tib').value='';
+        runForth(ln);
+        document.getElementById('forth-hist').value += ln + '\n';
+      }
+      function execHist() {
+        var ta = document.getElementById('forth-hist');
+        var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+        if (sel) runForth(sel);
       }
     </script>
   </body>
+  <style>
+body {
+  font-family: monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+  textarea, input {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border: 1px solid #444;
+  }
+}
+  </style>
 </html>
