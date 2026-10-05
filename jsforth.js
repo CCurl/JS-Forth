@@ -16,11 +16,23 @@ function define(name, immediate = false) {
   return dictionary[last];
 }
 
-function findWord(name) {
+function findWordIndex(name) {
   for (let i = last; i >= 0; i--) {
-    if (dictionary[i].name === name) return dictionary[i];
+    if (dictionary[i].name === name) return i;
+  }
+  return -1;
+}
+
+function findByXT(xt) {
+  for (let i = last; i >= 0; i--) {
+    if (dictionary[i].xt === xt) return dictionary[i];
   }
   return null;
+}
+
+function findWord(name) {
+  const i = findWordIndex(name);
+  return (0 <= i) ? dictionary[i] : undefined;
 }
 
 function under()     { throw new Error('Stack underflow'); }
@@ -73,16 +85,43 @@ function doVar() {
 }
 
 function doWords() {
-  num = 0, cnt = 0, str = '';
+  num = 0, str = '';
   for (let i = last; i >= 0; i--) {
     const name = dictionary[i].name;
     str += `${name}\t`;
-    ++cnt; ++num;
-    num += name.length/8;
-    if (9 < num) { type(str+'\n'); num = 0; str = ''; }
+    num += 1 + Math.floor(name.length/8);
+    if (7 < num) { type(str+'\n'); num = 0; str = ''; }
   }
-  type(`${str} (${cnt} words)`);
+  type(`${str} (${last+1} words)`);
 }
+
+doLoad = (blockNum) => {
+  if (blocks[blockNum] !== undefined) {
+    outer(blocks[blockNum]);
+  }
+};
+
+doSee = () => {
+  if (!nextWord(' ')) { type(`see: expected a word\n`); }
+  const i = findWordIndex(wd);
+  if (i !== -1) {
+    const e = dictionary[i];
+    if (typeof e.xt === 'function') { type(`${wd}: ${e.xt.toString()}\n`); return; }
+    const f = e.xt, t = (i == last) ? here : dictionary[i+1].xt;
+    type(`Word: ${wd} - ${f}:${t}\n`);
+    for (let j = f; j < t; j++) {
+      const op = mem[j];
+      let desc = ''
+      if (typeof op === 'number') {
+        const c = findByXT(op);
+        if (c) { desc = ` (${c.name})`; }
+      }
+      type(`${j}: ${op}${desc}\n`);
+    }
+  } else {
+    type(`Word not found: ${wd}\n`);
+  }
+};
 
 function definePrimitives() {
   definePrim('+',      () => { t=pop(); setTOS(TOS() + t); });
@@ -107,7 +146,7 @@ function definePrimitives() {
   definePrim('.',      () => { dot(pop()); });
   definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
   definePrim('i',      () => { push(L0()); });
-  definePrim('next',   () => { if (L0() < L1()) { ++mem[lsp]; pc=L2(); } else { unloop(); } });
+  definePrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
   definePrim('emit',   () => { emit(pop()); });
   definePrim('exit',   () => { exit(); });
   definePrim('type',   () => { doType(); });
@@ -123,6 +162,9 @@ function definePrimitives() {
   definePrim('1+',     () => { ++mem[dsp]; });
   definePrim('cycle',  () => { push(cycle); });
   definePrim('timer',  () => { push(Date.now()); });
+  definePrim('load',   () => { t=pop(); doLoad(t); });
+  definePrim('list',   () => { t=pop(); listForthBlock(t); });
+  definePrim('see',    () => { doSee(); });
   definePrim('immediate', () => { dictionary[last].immediate = true; });
   defineImm('s"',      () => { sQuote(); });
   defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
@@ -137,7 +179,7 @@ function definePrimitives() {
 function inner(start) {
   pc = start;
   while ((pc)  && (pc < mem.length)) {
-    ++cycle;
+    // ++cycle;
     const op = mem[pc++];
     if (op === undefined) { return; }
     if (typeof op === 'function') { op(); }
@@ -205,6 +247,7 @@ function doSemi(token) {
 }
 
 function outer(source) {
+  const s1 =  tib, p1 = pos, l1 = tibLen;
   tib = source;
   tibLen = tib.length;
   pos = 0;
@@ -215,12 +258,13 @@ function outer(source) {
     if (doWord(wd)) { continue; }
     throw new Error(`unknown word: ${wd}`);
   }
+  tib = s1; pos = p1; tibLen = l1;
 }
 
 definePrimitives();
 
 function runForth(src) {
-  const input = src ?? document.getElementById('forth-block').value;
+  const input = src ?? '';
   const output = document.getElementById('forth-output');
   const lines = [];
   const origLog = console.log;
@@ -250,4 +294,23 @@ window.addEventListener('load', async ()=>{              // load event handler
         }
         else runForth(s.innerText)
     }
+    listForthBlock(0);
 });
+
+// Blocks
+blocks = [];
+blocks[0] = '\
+: >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;\n\
+: >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;\n\
+: >ab >b >a ;   : <ab <a <b ;\n\
+';
+blocks[1] = '\
+: k 1000 * ; : mil k k ;\n\
+: lap timer ; : .lap timer swap - . ;\n\
+: bm lap swap for next .lap ;\n\
+: dump swap >a for a . ." - " @a+ . cr next <a ;\n\
+';
+
+listForthBlock = (n) => {
+    document.getElementById('forth-block').value = blocks[n];
+}

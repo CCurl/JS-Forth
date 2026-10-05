@@ -5,24 +5,26 @@
   <body>
     <h1>JS-Forth v2026.10.04 - Chris Curl</h1>
     <div style="display: flex; gap: 10px; align-items: flex-start;">
-      <input 
-        id="forth-tib" type="text" placeholder="Enter Forth code" autofocus
-        onkeydown="if (event.key==='Enter') { repl(); }" size="64">
-      <button onclick="runForth(undefined)">Load</button>
-    </div>
     <div style="display: flex; gap: 10px; margin-top: 10px;">
-      <textarea id="forth-hist" rows="16" cols="32"
-        onkeydown="if (event.ctrlKey && event.key==='Enter') { execHist(); }">
-      </textarea>
-      <textarea id="forth-output" rows="16" cols="64" readonly></textarea>
-      <textarea id="forth-block"  rows="16" cols="64" readonly></textarea>
+      <table>
+        <tr>
+          <th><h2>History</h2></th>
+          <th><h2>Output</h2></th>
+          <th><h2>Block</h2></th>
+        </tr>
+        <tr>
+          <td><textarea id="forth-hist" rows="25" cols="32" autofocus
+            onkeydown="if (event.ctrlKey && event.key==='Enter') { execHist(); }"></textarea></td>
+          <td><textarea id="forth-output" rows="25" cols="64" readonly></textarea></td>
+          <td><textarea id="forth-block"  rows="25" cols="64" readonly></textarea></td>
+        </tr>
+      </table>
     </div>
     <script src="./jsforth.js"></script>
     <script type="application/forth">
       ." JS-Forth v2026.10.04 - Chris Curl"
       : cr 10 emit ; cr cr ." hello."
     </script>
-    <script src="./block-1.js"></script>
     <script>
       function repl() {
         var ln = document.getElementById('forth-tib').value;
@@ -40,6 +42,11 @@
   <style>
     body {
       font-family: monospace;
+    }
+
+    h2 {
+      text-align: left;
+      margin: 0;
     }
 
     @media (prefers-color-scheme: dark) {
