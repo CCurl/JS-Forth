@@ -58,6 +58,22 @@ This is a complete Forth virtual machine implemented in ~300 lines of JavaScript
 - Word references are compiled as their execution token (address or function)
 - When compiling, `Comma()` stores values in memory at `here` pointer
 
+### Block System
+
+Blocks are stored in a JavaScript array (`blocks[]`) and accessed via:
+- `list n` - Display block n in the UI textarea
+- `load n` - Execute block n
+- Blocks are typically 1024 characters (standard Forth block size)
+- Can be edited in the textarea and re-loaded
+
+### HTML Integration
+
+The interpreter can update HTML elements dynamically:
+- `html!` primitive takes a value and element ID from the stack
+- Elements are selected by `id` attribute
+- Updates set the element's `textContent` property
+- Useful for displaying computed results, version info, block numbers, etc.
+
 ## Usage
 
 ### HTML Integration
@@ -90,11 +106,30 @@ Include the interpreter in your HTML file:
 ```
 
 The interface includes:
-- **REPL Input**: Single-line text input for quick Forth commands (press Enter to execute)
-- **Multi-line Editor**: Textarea for larger programs
-- **Run Button**: Executes code from the textarea
-- **Output Window**: Pre-formatted text display for results
+- **Input Area**: Multi-line textarea for Forth code
+  - **Ctrl-Enter**: Execute selected text (or all if none selected)
+  - Maintains command history
+- **Output Window**: Displays execution results and error messages
+- **Block Display**: Shows Forth block contents when using `list`
 - **Dark Mode**: Automatic detection of system color scheme preference
+
+### Updating HTML from Forth
+
+Use the `html!` primitive to update HTML elements with computed values:
+
+```forth
+s" JS-Forth v2026.10.10" s" hdr" html!   \ Update element id="hdr"
+5 s" block-num" html!                    \ Display block number
+```
+
+In your HTML, use placeholder text and add an `id` attribute:
+
+```html
+<h1 id="hdr">??</h1>
+<span>Block <pre id="blk-num">??</pre></span>
+```
+
+The Forth code then updates these elements when executed.
 
 ### Embedded Forth Scripts
 
@@ -158,6 +193,10 @@ outer('10 2 / .');    // Outputs: 5
 
 ### I/O
 - `.` - Print top of stack and remove: `( n -- )`
+- `type` - Print string from stack: `( str -- )`
+- `emit` - Print character code as ASCII: `( char-code -- )`
+- `html!` - Update HTML element by ID: `( value id-str -- )`
+  - Example: `5 s" count" html!` updates element with id="count" to "5"
 
 ### Control Flow
 - `exit` - Return from word (automatic at end of `:` definitions)
@@ -167,6 +206,25 @@ outer('10 2 / .');    // Outputs: 5
 - `begin` ... `again` - Infinite loop: `( -- )` jumps back to begin unconditionally
 - `for` ... `next` - Counted loop: `( n -- )` executes n times, use `i` to access loop counter
 - `i` - Loop counter: `( -- count )` pushes current iteration number (0 to n-1)
+
+### Block Storage & Introspection
+- `load` - Load and execute a block: `( block-num -- )`
+- `list` - Display a block in the UI: `( block-num -- )`
+- `see` - Inspect a word definition: `( -- )` next word to inspect
+- `words` - List all defined words
+
+### Variables & Temporary Storage
+- `a` / `a!` - Get/set variable A: `( -- val )` / `( val -- )`
+- `b` / `b!` - Get/set variable B: `( -- val )` / `( val -- )`
+- `>t` - Push to temp stack: `( val -- )`
+- `t@` - Peek temp stack: `( -- val )`
+- `t>` - Pop from temp stack: `( -- val )`
+
+### Utilities
+- `cycle` - Get cycle counter: `( -- count )`
+- `timer` - Get current Unix timestamp: `( -- ms )`
+- `1+` - Increment top of stack: `( n -- n+1 )`
+- `immediate` - Mark last defined word as immediate (executes during compilation)
 
 ## Examples
 
@@ -201,6 +259,26 @@ outer('10 2 / .');    // Outputs: 5
 100 @ .          \ Load and print: 42
 ```
 
+### Block Operations
+```forth
+0 list           \ Display block 0 in the UI
+0 load           \ Load and execute block 0
+```
+
+### Word Introspection
+```forth
+: myword 5 * ;
+see myword       \ Inspect the compiled code for myword
+words            \ List all defined words
+```
+
+### HTML Updates
+```forth
+s" Hello World" s" my-element" html!   \ Update element id="my-element"
+: set-title s" hdr" html! ;
+s" My App v1.0" set-title              \ Set the header text
+```
+
 ### Conditional Logic (using flags)
 ```forth
 5 3 > .          \ Output: -1 (true)
@@ -232,13 +310,17 @@ outer('10 2 / .');    // Outputs: 5
 - `doWord(token)` - Look up and execute/compile word
 - `doColon(token)` - Begin word definition
 - `doSemi(token)` - End word definition
+- `listForthBlock(n)` - Display block n in the UI textarea
+- `setHTMLValue(id, val)` - Update HTML element with given ID
+- `doSee()` - Inspect word definition (next word from input)
 
 ### Limitations
 
-- Limited error handling
-- Stack underflow returns 0 instead of error
-- No string literals or comments
-- Fixed memory size (array length)
+- Limited error handling (mostly throws on undefined words)
+- No advanced string handling (only basic `s"` and `."`)
+- No comments except `( )` style (no `\` line comments)
+- Fixed memory size (array length limited)
+- Block storage must be defined in JavaScript, not dynamically created
 
 ## How It Works
 
