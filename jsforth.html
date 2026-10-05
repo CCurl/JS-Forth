@@ -29,12 +29,6 @@
       cr ." Hello." cr cr words
     </script>
     <script>
-      function repl() {
-        var ln = document.getElementById('forth-tib').value;
-        document.getElementById('forth-tib').value='';
-        runForth(ln);
-        document.getElementById('forth-hist').value += ln + '\n';
-      }
       function execHist() {
         var ta = document.getElementById('forth-hist');
         var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
