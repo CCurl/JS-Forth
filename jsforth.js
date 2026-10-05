@@ -108,7 +108,7 @@ doSee = () => {
     const e = dictionary[i];
     if (typeof e.xt === 'function') { type(`${wd}: ${e.xt.toString()}\n`); return; }
     const f = e.xt, t = (i == last) ? here : dictionary[i+1].xt;
-    type(`Word: ${wd} - ${f}:${t}\n`);
+    type(`Word: ${wd} - ${f}:${t-1}\n`);
     for (let j = f; j < t; j++) {
       const op = mem[j];
       let desc = ''
@@ -305,6 +305,7 @@ blocks[0] = '\
 : >ab >b >a ;   : <ab <a <b ;\n\
 ';
 blocks[1] = '\
+0 load\n\
 : k 1000 * ; : mil k k ;\n\
 : lap timer ; : .lap timer swap - . ;\n\
 : bm lap swap for next .lap ;\n\
