@@ -106,12 +106,14 @@ doSee = () => {
   const i = findWordIndex(wd);
   if (i !== -1) {
     const e = dictionary[i];
-    if (typeof e.xt === 'function') { type(`${wd}: ${e.xt.toString()}\n`); return; }
+    if (typeof e.xt === 'function') {
+      type(`${wd}: ${e.xt.toString()}\n`);
+      return;
+    }
     const f = e.xt, t = (i == last) ? here : dictionary[i+1].xt;
     type(`Word: ${wd} - ${f}:${t-1}\n`);
     for (let j = f; j < t; j++) {
-      const op = mem[j];
-      let desc = ''
+      let op = mem[j], desc = ''
       if (typeof op === 'number') {
         const c = findByXT(op);
         if (c) { desc = ` (${c.name})`; }
@@ -119,7 +121,7 @@ doSee = () => {
       type(`${j}: ${op}${desc}\n`);
     }
   } else {
-    type(`Word not found: ${wd}\n`);
+    type(`see: ${wd} not found\n`);
   }
 };
 
