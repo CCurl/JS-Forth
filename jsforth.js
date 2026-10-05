@@ -285,6 +285,7 @@ function runForth(src) {
 
 // For handling embedded Forth scripts in the HTML document
 window.addEventListener('load', async ()=>{              // load event handler
+    runForth(': version s" 2026.10.05" ;');
     let slst = document.getElementsByTagName('script')   // get scripts
     for (let i=0; i<slst.length; i++) {
         let s = slst[i]
