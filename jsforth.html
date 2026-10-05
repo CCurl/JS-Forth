@@ -11,16 +11,18 @@
       <button onclick="runForth(undefined)">Load</button>
     </div>
     <div style="display: flex; gap: 10px; margin-top: 10px;">
+      <textarea id="forth-hist" rows="16" cols="32"
+        onkeydown="if (event.ctrlKey && event.key==='Enter') { execHist(); }">
+      </textarea>
       <textarea id="forth-output" rows="16" cols="64" readonly></textarea>
-      <textarea id="forth-block" rows="16" cols="64" maxlength="1023"></textarea>
-      <textarea id="forth-hist" rows="16" cols="32" readonly
-        onkeydown="if (event.ctrlKey && event.key==='Enter') { execHist(); }"></textarea>
+      <textarea id="forth-block"  rows="16" cols="64" readonly></textarea>
     </div>
     <script src="./jsforth.js"></script>
     <script type="application/forth">
       ." JS-Forth v2026.10.04 - Chris Curl"
       : cr 10 emit ; cr cr ." hello."
     </script>
+    <script src="./block-1.js"></script>
     <script>
       function repl() {
         var ln = document.getElementById('forth-tib').value;
@@ -36,20 +38,20 @@
     </script>
   </body>
   <style>
-body {
-  font-family: monospace;
-}
+    body {
+      font-family: monospace;
+    }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-  textarea, input {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border: 1px solid #444;
-  }
-}
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+      }
+      textarea, input {
+        background-color: #2d2d2d;
+        color: #e0e0e0;
+        border: 1px solid #444;
+      }
+    }
   </style>
 </html>
