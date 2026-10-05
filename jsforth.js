@@ -1,189 +1,272 @@
 // jsforth.js - (c) Chris Curl, MIT license
 
-  mem = [], dictionary = [];
-  sBs = 0,   rBs = 50,  lBs = 100;  // Data, Return, Loop stack bases
-  sSp = sBs, rSp = rBs, lSp = lBs;  // Stack pointers
-  here = 150, last = -1, pc = -1;
-  tib = '', wd = '';
-  pos = 0, tibLen = 0;
-  compiling = false;
+mem = [], dictionary = [];
+dstk = 0,     dsp = dstk, dse = 64;       // Data stack
+rstk = dse+1, rsp = rstk, rse = rstk+64;  // Return stack
+lstk = rse+1, lsp = lstk, lse = lstk+30;  // Loop stack
+tstk = lse+1, tsp = tstk, tse = tstk+32;  // Temp stack
+here = tse+1, last = -1, pc = -1, varA=0, varB=0;
+tib = '', wd = '';
+pos = 0, tibLen = 0, cycle = 0;
+compiling = false;
 
-  // define(name, immediate) adds an entry to the dictionary
-  function define(name, immediate = false) {
-    dictionary[++last] = { name, xt: here, immediate };
-    return dictionary[last];
-  }
+// define(name, immediate) adds an entry to the dictionary
+function define(name, immediate = false) {
+  dictionary[++last] = { name, xt: here, immediate };
+  return dictionary[last];
+}
 
-  function under()     { throw new Error('Stack underflow'); }
-  function push(val)   { mem[++sSp] = val; }
-  function rPush(val)  { mem[++rSp] = val; }
-  function lPush(val)  { mem[++lSp] = val; }
-  function pop()       { return (sSp > sBs) ? mem[sSp--] : under(); }
-  function rPop()      { return (rSp > rBs) ? mem[rSp--] : undefined; }
-  function lPop()      { return (lSp > lBs) ? mem[lSp--] : undefined; }
-  function TOS()       { return mem[sSp]; }
-  function NOS()       { return mem[sSp-1]; }
-  function setTOS(val) { mem[sSp] = val; }
-  function setNOS(val) { mem[sSp-1] = val; }
-  function Comma(x)    { mem[here++] = x; }
-  function exit()      { pc = rPop(); }
-  function lit()       { push(mem[pc++]); }
-  function jmp()       { tgt = mem[pc++]; pc = tgt; }
-  function jmpz()      { tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
-  function jmpnz()     { tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
-  function njmpz()     { tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
-  function njmpnz()    { tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
-  function emit(x)     { console.log(String.fromCharCode(x)) }
-  function type(str)   { console.log(str?.toString() ?? "-undef-"); }
-  function doType()    { type(pop()); }
-  function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
-  function definePrim(name, fn) { define(name).xt = fn; }
-  function defineImm(name, fn)  { define(name, true).xt = fn; }
-  
-  function sQuote() {
-    ++pos; // skip the initial space
-    nextWord('"');
-    const str = new String(wd);  // this creates a copy of the current word
-    if (compiling) { Comma(lit); Comma(str); }
-    else { push(str); }
+function findWordIndex(name) {
+  for (let i = last; i >= 0; i--) {
+    if (dictionary[i].name === name) return i;
   }
-  
-  function doWords() {
-    num = 0, cnt = 0;
-    for (let i = last; i >= 0; i--) {
-      type(dictionary[i].name);
-      type(' ');
-      ++cnt; ++num;
-      if (7 < num) { type('\n'); num = 0; }
+  return -1;
+}
+
+function findByXT(xt) {
+  for (let i = last; i >= 0; i--) {
+    if (dictionary[i].xt === xt) return dictionary[i];
+  }
+  return null;
+}
+
+function findWord(name) {
+  const i = findWordIndex(name);
+  return (0 <= i) ? dictionary[i] : undefined;
+}
+
+function under()     { throw new Error('Stack underflow'); }
+function push(val)   { if (dsp < dse) mem[++dsp] = val; }
+function rPush(val)  { if (rsp < rse) mem[++rsp] = val; }
+function lPush(val)  { if (lsp < lse) mem[++lsp] = val; }
+function tPush(val)  { if (tsp < tse) mem[++tsp] = val; }
+function pop()       { return (dstk < dsp) ? mem[dsp--] : under(); }
+function rPop()      { return (rstk < rsp) ? mem[rsp--] : under(); }
+function lPop()      { return (lstk < lsp) ? mem[lsp--] : under(); }
+function tPop()      { return (tstk < tsp) ? mem[tsp--] : under(); }
+function TOS()       { return mem[dsp]; }
+function NOS()       { return mem[dsp-1]; }
+function setTOS(val) { mem[dsp] = val; }
+function setNOS(val) { mem[dsp-1] = val; }
+function Comma(x)    { mem[here++] = x; }
+function L0()        { return mem[lsp]; }
+function L1()        { return mem[lsp-1]; }
+function L2()        { return mem[lsp-2]; }
+function unloop()    { lPop(); lPop(); lPop(); }
+function exit()      { pc = rPop(); }
+function lit()       { push(mem[pc++]); }
+function jmp()       { tgt = mem[pc++]; pc = tgt; }
+function jmpz()      { tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
+function jmpnz()     { tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
+function njmpz()     { tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
+function njmpnz()    { tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
+function emit(x)     { console.log(String.fromCharCode(x)) }
+function type(str)   { console.log(str?.toString() ?? "-undef-"); }
+function doType()    { type(pop()); }
+function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
+function definePrim(name, fn) { define(name).xt = fn; }
+function defineImm(name, fn)  { define(name, true).xt = fn; }
+
+function sQuote() {
+  ++pos; // skip the initial space
+  nextWord('"');
+  const str = new String(wd);  // this creates a copy of the current word
+  if (compiling) { Comma(lit); Comma(str); }
+  else { push(str); }
+}
+
+function doVar() {
+  if (nextWord(' ') === 0) { throw new Error('expected a variable name'); }
+  define(wd);
+  Comma(lit);
+  Comma(here+2); // allocate space for the variable
+  Comma(exit);
+  Comma(0);
+}
+
+function doWords() {
+  num = 0, str = '';
+  for (let i = last; i >= 0; i--) {
+    const name = dictionary[i].name;
+    str += `${name}\t`;
+    num += 1 + Math.floor(name.length/8);
+    if (7 < num) { type(str+'\n'); num = 0; str = ''; }
+  }
+  type(`${str} (${last+1} words)`);
+}
+
+doLoad = (blockNum) => {
+  if (blocks[blockNum] !== undefined) {
+    outer(blocks[blockNum]);
+  }
+};
+
+doSee = () => {
+  if (!nextWord(' ')) { type(`see: expected a word\n`); }
+  const i = findWordIndex(wd);
+  if (i !== -1) {
+    const e = dictionary[i];
+    if (typeof e.xt === 'function') {
+      type(`${wd}: ${e.xt.toString()}\n`);
+      return;
     }
-    type(` (${cnt} words)`);
-  }
-
-  function definePrimitives() {
-    definePrim('+',      () => { t=pop(); setTOS(TOS() + t); });
-    definePrim('-',      () => { t=pop(); setTOS(TOS() - t); });
-    definePrim('*',      () => { t=pop(); setTOS(TOS() * t); });
-    definePrim('/',      () => { t=pop(); setTOS(TOS() / t); });
-    definePrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
-    definePrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
-    definePrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
-    definePrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
-    definePrim('and',    () => { t=pop(); setTOS(TOS() & t); });
-    definePrim('or',     () => { t=pop(); setTOS(TOS() | t); });
-    definePrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
-    definePrim('com',    () => { t=pop(); setTOS(~TOS()); });
-    definePrim('dup',    () => { push(TOS()); });
-    definePrim('drop',   () => { pop(); });
-    definePrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
-    definePrim('over',   () => { n=NOS(); push(n); });
-    definePrim('@',      () => { setTOS(mem[TOS()]); });
-    definePrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
-    definePrim(',',      () => { Comma(pop()); });
-    definePrim('.',      () => { dot(pop()); });
-    definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
-    definePrim('i',      () => { push(mem[lSp]); });
-    definePrim('next',   () => { if (++mem[lSp] < mem[lSp-1]) { pc = mem[lSp-2]; } else { lSp -= 3; } });
-    definePrim('emit',   () => { emit(pop()); });
-    definePrim('exit',   () => { exit(); });
-    definePrim('type',   () => { doType(); });
-    definePrim('words',  () => { doWords(); });
-    definePrim('immediate', () => { dictionary[last].immediate = true; });
-    defineImm('s"',      () => { sQuote(); });
-    defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
-    defineImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
-    defineImm('then',    () => { mem[pop()] = here; });
-    defineImm('begin',   () => { push(here); });
-    defineImm('while',   () => { Comma(jmpnz); Comma(pop()); });
-    defineImm('until',   () => { Comma(jmpz);  Comma(pop()); });
-    defineImm('again',   () => { Comma(jmp);   Comma(pop()); });
-  }
-
-  function inner(start) {
-    pc = start;
-    while ((pc)  && (pc < mem.length)) {
-      const op = mem[pc++];
-      if (op === undefined) { return; }
-      if (typeof op === 'function') { op(); }
-      else {
-        if (mem[pc] != exit) { rPush(pc); }
-        pc = op;
+    const f = e.xt, t = (i == last) ? here : dictionary[i+1].xt;
+    type(`Word: ${wd} - ${f}:${t-1}\n`);
+    for (let j = f; j < t; j++) {
+      let op = mem[j], desc = ''
+      if (typeof op === 'number') {
+        const c = findByXT(op);
+        if (c) { desc = ` (${c.name})`; }
       }
+      type(`${j}: ${op}${desc}\n`);
+    }
+  } else {
+    type(`see: ${wd} not found\n`);
+  }
+};
+
+function definePrimitives() {
+  definePrim('+',      () => { t=pop(); setTOS(TOS() + t); });
+  definePrim('-',      () => { t=pop(); setTOS(TOS() - t); });
+  definePrim('*',      () => { t=pop(); setTOS(TOS() * t); });
+  definePrim('/',      () => { t=pop(); setTOS(TOS() / t); });
+  definePrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
+  definePrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
+  definePrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+  definePrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
+  definePrim('and',    () => { t=pop(); setTOS(TOS() & t); });
+  definePrim('or',     () => { t=pop(); setTOS(TOS() | t); });
+  definePrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
+  definePrim('com',    () => { t=pop(); setTOS(~TOS()); });
+  definePrim('dup',    () => { push(TOS()); });
+  definePrim('drop',   () => { pop(); });
+  definePrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+  definePrim('over',   () => { n=NOS(); push(n); });
+  definePrim('@',      () => { setTOS(mem[TOS()]); });
+  definePrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
+  definePrim(',',      () => { Comma(pop()); });
+  definePrim('.',      () => { dot(pop()); });
+  definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
+  definePrim('i',      () => { push(L0()); });
+  definePrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
+  definePrim('emit',   () => { emit(pop()); });
+  definePrim('exit',   () => { exit(); });
+  definePrim('type',   () => { doType(); });
+  definePrim('words',  () => { doWords(); });
+  definePrim('var',    () => { doVar(); });
+  definePrim('>t',     () => { tPush(pop()); });
+  definePrim('t@',     () => { push(mem[tsp]); });
+  definePrim('t>',     () => { push(tPop()); });
+  definePrim('a',      () => { push(varA); });
+  definePrim('a!',     () => { varA = pop(); });
+  definePrim('b',      () => { push(varB); });
+  definePrim('b!',     () => { varB = pop(); });
+  definePrim('1+',     () => { ++mem[dsp]; });
+  definePrim('cycle',  () => { push(cycle); });
+  definePrim('timer',  () => { push(Date.now()); });
+  definePrim('load',   () => { t=pop(); doLoad(t); });
+  definePrim('list',   () => { t=pop(); listForthBlock(t); });
+  definePrim('see',    () => { doSee(); });
+  definePrim('immediate', () => { dictionary[last].immediate = true; });
+  defineImm('s"',      () => { sQuote(); });
+  defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
+  defineImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
+  defineImm('then',    () => { mem[pop()] = here; });
+  defineImm('begin',   () => { push(here); });
+  defineImm('while',   () => { Comma(jmpnz); Comma(pop()); });
+  defineImm('until',   () => { Comma(jmpz);  Comma(pop()); });
+  defineImm('again',   () => { Comma(jmp);   Comma(pop()); });
+}
+
+function inner(start) {
+  pc = start;
+  while ((pc)  && (pc < mem.length)) {
+    // ++cycle;
+    const op = mem[pc++];
+    if (op === undefined) { return; }
+    if (typeof op === 'function') { op(); }
+    else {
+      if (mem[pc] != exit) { rPush(pc); }
+      pc = op;
     }
   }
-  
-  function nextWord(delim) {
-    wd = '';
-    const isSpace = (delim === ' ');
-    const isWS = (p) => { return tib.charCodeAt(p) < 33; };
+}
 
-    if (isSpace) {
-      while ((pos < tibLen) && isWS(pos)) { pos++; }
-    }
-    const start = pos;
-    while (pos < tibLen) {
-      if (isSpace && isWS(pos)) { break; }
-      if ((delim === tib[pos])) { break; }
-      pos++;
-    }
-    wd = tib.slice(start, pos);
-    if (!isSpace) { pos++; }
-    return wd.length;
-  }
-  
-  function doNum(token) {
-    const num = Number(token);
-    if (isNaN(num)) { return false; }
-    if (compiling) { Comma(lit); Comma(num); }
-    else { push(num); }
-    return true;
-  }
+function nextWord(delim) {
+  wd = '';
+  const isSpace = (delim === ' ');
+  const isWS = (p) => { return tib.charCodeAt(p) < 33; };
 
-  function doWord(token) {
-    const entry = dictionary.find(e => e.name === token);
-    if (!entry) { return false; }
-    if (entry.immediate || !compiling) {
-      const x = here+100;
-      mem[x] = entry.xt;
-      mem[x+1] = undefined;
-      inner(x);
-    } else {
-      Comma(entry.xt); // compile reference
-    }
-    return true;
+  if (isSpace) {
+    while ((pos < tibLen) && isWS(pos)) { pos++; }
   }
+  const start = pos;
+  while (pos < tibLen) {
+    if (isSpace && isWS(pos)) { break; }
+    if ((delim === tib[pos])) { break; }
+    pos++;
+  }
+  wd = tib.slice(start, pos);
+  if (!isSpace) { pos++; }
+  return wd.length;
+}
 
-  function doColon(token) {
-    if (token != ':') { return false; }
-    if (nextWord(' ') === 0) { throw new Error('expected a name after ":"'); }
-    define(wd);
-    compiling = true;
-    return true;
-  }
+function doNum(token) {
+  const num = Number(token);
+  if (isNaN(num)) { return false; }
+  if (compiling) { Comma(lit); Comma(num); }
+  else { push(num); }
+  return true;
+}
 
-  function doSemi(token) {
-    if (token != ';') { return false; }
-    Comma(exit);
-    compiling = false;
-    return true;
+function doWord(token) {
+  const entry = findWord(token);
+  if (!entry) { return false; }
+  if (entry.immediate || !compiling) {
+    const x = here+100;
+    mem[x] = entry.xt;
+    mem[x+1] = undefined;
+    inner(x);
+  } else {
+    Comma(entry.xt); // compile reference
   }
+  return true;
+}
 
-  function outer(source) {
-    tib = source;
-    tibLen = tib.length;
-    pos = 0;
-    while (nextWord(' ') > 0) {
-      if (doColon(wd)) { continue; }
-      if (doSemi(wd)) { continue; }
-      if (doNum(wd)) { continue; }
-      if (doWord(wd)) { continue; }
-      throw new Error(`unknown word: ${wd}`);
-    }
+function doColon(token) {
+  if (token != ':') { return false; }
+  if (nextWord(' ') === 0) { throw new Error('expected a name after ":"'); }
+  define(wd);
+  compiling = true;
+  return true;
+}
+
+function doSemi(token) {
+  if (token != ';') { return false; }
+  Comma(exit);
+  compiling = false;
+  return true;
+}
+
+function outer(source) {
+  const s1 =  tib, p1 = pos, l1 = tibLen;
+  tib = source;
+  tibLen = tib.length;
+  pos = 0;
+  while (nextWord(' ') > 0) {
+    if (doColon(wd)) { continue; }
+    if (doSemi(wd)) { continue; }
+    if (doNum(wd)) { continue; }
+    if (doWord(wd)) { continue; }
+    throw new Error(`unknown word: ${wd}`);
   }
-  
+  tib = s1; pos = p1; tibLen = l1;
+}
+
 definePrimitives();
 
 function runForth(src) {
-  const input = src ?? document.getElementById('forth-input').value;
+  const input = src ?? '';
   const output = document.getElementById('forth-output');
   const lines = [];
   const origLog = console.log;
@@ -202,6 +285,7 @@ function runForth(src) {
 
 // For handling embedded Forth scripts in the HTML document
 window.addEventListener('load', async ()=>{              // load event handler
+    runForth(': version s" 2026.10.05" ;');
     let slst = document.getElementsByTagName('script')   // get scripts
     for (let i=0; i<slst.length; i++) {
         let s = slst[i]
@@ -213,4 +297,24 @@ window.addEventListener('load', async ()=>{              // load event handler
         }
         else runForth(s.innerText)
     }
+    listForthBlock(0);
 });
+
+// Blocks
+blocks = [];
+blocks[0] = '\
+: >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;\n\
+: >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;\n\
+: >ab >b >a ;   : <ab <a <b ;\n\
+';
+blocks[1] = '\
+0 load\n\
+: k 1000 * ; : mil k k ;\n\
+: lap timer ; : .lap timer swap - . ;\n\
+: bm lap swap for next .lap ;\n\
+: dump swap >a for a . ." - " @a+ . cr next <a ;\n\
+';
+
+listForthBlock = (n) => {
+    document.getElementById('forth-block').value = blocks[n];
+}
