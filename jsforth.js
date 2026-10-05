@@ -64,8 +64,10 @@ function emit(x)     { console.log(String.fromCharCode(x)) }
 function type(str)   { console.log(str?.toString() ?? "-undef-"); }
 function doType()    { type(pop()); }
 function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
+function doComment() { while (nextWord(' ') && (wd !== ')')) {} }
 function definePrim(name, fn) { define(name).xt = fn; }
 function defineImm(name, fn)  { define(name, true).xt = fn; }
+function doLoad(n) { if (blocks[n]) { outer(blocks[n]); } }
 
 function sQuote() {
   ++pos; // skip the initial space
@@ -95,11 +97,10 @@ function doWords() {
   type(`${str} (${last+1} words)`);
 }
 
-doLoad = (blockNum) => {
-  if (blocks[blockNum] !== undefined) {
-    outer(blocks[blockNum]);
-  }
-};
+listForthBlock = (n) => {
+    document.getElementById('forth-block').value = blocks[n];
+    setHTMLValue("blk-num", n);
+}
 
 doSee = () => {
   if (!nextWord(' ')) { type(`see: expected a word\n`); }
@@ -167,6 +168,7 @@ function definePrimitives() {
   definePrim('load',   () => { t=pop(); doLoad(t); });
   definePrim('list',   () => { t=pop(); listForthBlock(t); });
   definePrim('see',    () => { doSee(); });
+  definePrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
   definePrim('immediate', () => { dictionary[last].immediate = true; });
   defineImm('s"',      () => { sQuote(); });
   defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
@@ -248,12 +250,18 @@ function doSemi(token) {
   return true;
 }
 
+setHTMLValue = (id, val) => {
+  const e = document.getElementById(id);
+  if (e) { e.textContent = val.toString(); }
+}
+
 function outer(source) {
   const s1 =  tib, p1 = pos, l1 = tibLen;
   tib = source;
   tibLen = tib.length;
   pos = 0;
   while (nextWord(' ') > 0) {
+    if (wd == '(') { doComment(); continue; }
     if (doColon(wd)) { continue; }
     if (doSemi(wd)) { continue; }
     if (doNum(wd)) { continue; }
@@ -285,7 +293,6 @@ function runForth(src) {
 
 // For handling embedded Forth scripts in the HTML document
 window.addEventListener('load', async ()=>{              // load event handler
-    runForth(': version s" 2026.10.05" ;');
     let slst = document.getElementsByTagName('script')   // get scripts
     for (let i=0; i<slst.length; i++) {
         let s = slst[i]
@@ -297,7 +304,6 @@ window.addEventListener('load', async ()=>{              // load event handler
         }
         else runForth(s.innerText)
     }
-    listForthBlock(0);
 });
 
 // Blocks
@@ -315,6 +321,3 @@ blocks[1] = '\
 : dump swap >a for a . ." - " @a+ . cr next <a ;\n\
 ';
 
-listForthBlock = (n) => {
-    document.getElementById('forth-block').value = blocks[n];
-}

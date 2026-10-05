@@ -3,19 +3,18 @@
   <title>JS-Forth</title>
   </head>
   <body>
-    <h1><a href="https://github.com/CCurl/JS-Forth" target="_blank">JS-Forth - v2026.10.05</a></h1>
+    <h1><a id="hdr" href="https://github.com/CCurl/JS-Forth" target="_blank">??</a></h1>
     <div style="display: flex; gap: 10px; align-items: flex-start;">
     <div style="display: flex; gap: 10px; margin-top: 10px;">
       <table>
         <tr>
           <th><h2>Input (Select + Ctrl-Enter)</h2></th>
           <th><h2>Output</h2></th>
-          <th><h2>Block</h2></th>
+          <th><h2><span>Block <pre id="blk-num">??</pre></span></h2></th>
         </tr>
         <tr>
           <td><textarea id="forth-hist" rows="25" cols="40" autofocus
-            onkeydown="if (event.ctrlKey && event.key==='Enter') { execHist(); }">words
-          </textarea>
+            onkeydown="if (event.ctrlKey && event.key==='Enter'){ execHist(); }"></textarea>
           </td>
           <td><textarea id="forth-output" rows="25" cols="64" readonly></textarea></td>
           <td><textarea id="forth-block"  rows="25" cols="64" readonly></textarea></td>
@@ -24,9 +23,12 @@
     </div>
     <script src="./jsforth.js"></script>
     <script type="application/forth">
-      : cr 10 emit ;
+      : version s" JS-Forth v2026.10.10" ; : cr 10 emit ;
+      version s" hdr" html!
+      s" words" s" forth-hist" html!
       ." JS-Forth version " version . ."  - Chris Curl" cr
-      cr ." Hello." cr cr words
+      cr ." Hello." cr
+      cr words  0 list
     </script>
     <script>
       function execHist() {
@@ -43,6 +45,11 @@
 
     h2 {
       text-align: left;
+      margin: 0;
+    }
+
+    pre {
+      display: inline;
       margin: 0;
     }
 
