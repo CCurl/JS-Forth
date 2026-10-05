@@ -102,6 +102,11 @@ listForthBlock = (n) => {
     setHTMLValue("blk-num", n);
 }
 
+setHTMLValue = (id, val) => {
+  const e = document.getElementById(id);
+  if (e) { e.textContent = val.toString(); }
+}
+
 doSee = () => {
   if (!nextWord(' ')) { type(`see: expected a word\n`); }
   const i = findWordIndex(wd);
@@ -199,9 +204,8 @@ function nextWord(delim) {
   const isSpace = (delim === ' ');
   const isWS = (p) => { return tib.charCodeAt(p) < 33; };
 
-  if (isSpace) {
-    while ((pos < tibLen) && isWS(pos)) { pos++; }
-  }
+  if (isSpace) { while ((pos < tibLen) && isWS(pos)) { pos++; } }
+
   const start = pos;
   while (pos < tibLen) {
     if (isSpace && isWS(pos)) { break; }
@@ -248,11 +252,6 @@ function doSemi(token) {
   Comma(exit);
   compiling = false;
   return true;
-}
-
-setHTMLValue = (id, val) => {
-  const e = document.getElementById(id);
-  if (e) { e.textContent = val.toString(); }
 }
 
 function outer(source) {
@@ -320,4 +319,3 @@ blocks[1] = '\
 : bm lap swap for next .lap ;\n\
 : dump swap >a for a . ." - " @a+ . cr next <a ;\n\
 ';
-

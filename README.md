@@ -2,9 +2,15 @@
 
 A minimal, efficient Forth interpreter that runs in the browser. Supports word definitions, arithmetic, stack operations, memory access, and can be embedded directly in HTML via `<script type="application/forth">` tags.
 
+## Quick Start
+- Copy the 2 files: 'jsforth.html' and 'jsforth.js'.
+- Paste them into a folder of your choice.
+- Open the 'jsforth.html' file in a browser of your choice.
+- Have fun!
+
 ## Overview
 
-This is a complete Forth virtual machine implemented in ~200 lines of JavaScript. It features:
+This is a complete Forth virtual machine implemented in ~300 lines of JavaScript. It features:
 - Data stack and return stack with separate memory regions
 - Compiled word definitions stored in shared memory
 - Immediate words (executed during compilation)
