@@ -35,15 +35,15 @@ function findWord(name) {
   return (0 <= i) ? dictionary[i] : undefined;
 }
 
-function under()     { throw new Error('Stack underflow'); }
+function under(s)    { throw new Error(`${s} Stack underflow`); }
 function push(val)   { if (dsp < dse) mem[++dsp] = val; }
 function rPush(val)  { if (rsp < rse) mem[++rsp] = val; }
 function lPush(val)  { if (lsp < lse) mem[++lsp] = val; }
 function tPush(val)  { if (tsp < tse) mem[++tsp] = val; }
-function pop()       { return (dstk < dsp) ? mem[dsp--] : under(); }
-function rPop()      { return (rstk < rsp) ? mem[rsp--] : under(); }
-function lPop()      { return (lstk < lsp) ? mem[lsp--] : under(); }
-function tPop()      { return (tstk < tsp) ? mem[tsp--] : under(); }
+function pop()       { return (dstk < dsp) ? mem[dsp--] : under('Data'); }
+function rPop()      { return (rstk < rsp) ? mem[rsp--] : under('Return'); }
+function lPop()      { return (lstk < lsp) ? mem[lsp--] : under('Loop'); }
+function tPop()      { return (tstk < tsp) ? mem[tsp--] : under('Temp'); }
 function TOS()       { return mem[dsp]; }
 function NOS()       { return mem[dsp-1]; }
 function setTOS(val) { mem[dsp] = val; }
@@ -170,6 +170,7 @@ function definePrimitives() {
   definePrim('1+',     () => { ++mem[dsp]; });
   definePrim('cycle',  () => { push(cycle); });
   definePrim('timer',  () => { push(Date.now()); });
+  definePrim('here',   () => { push(here); });
   definePrim('load',   () => { t=pop(); doLoad(t); });
   definePrim('list',   () => { t=pop(); listForthBlock(t); });
   definePrim('see',    () => { doSee(); });
