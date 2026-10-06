@@ -1,13 +1,12 @@
 // jsforth.js - (c) Chris Curl, MIT license
 
 mem = [], dict = [], blocks = [];
-dstk = 0,     dsp = dstk, dse = 64;       // Data stack
-rstk = dse+1, rsp = rstk, rse = rstk+64;  // Return stack
-lstk = rse+1, lsp = lstk, lse = lstk+30;  // Loop stack
-tstk = lse+1, tsp = tstk, tse = tstk+32;  // Temp stack
-here = tse+1, last = -1, pc = -1, varA=0, varB=0;
-tib = '', wd = '';
-pos = 0, tibLen = 0;
+dstk = 0,   dsp = dstk, dse = 59;    // Data stack
+rstk = 60,  rsp = rstk, rse = 119;   // Return stack
+tstk = 100, tsp = tstk, tse = 169;   // Temp stack
+lstk = 170, lsp = lstk, lse = 199;   // Loop stack
+here = 200, last = -1, pc = -1, varA = 0, varB = 0;
+tib = '', wd = '', pos = 0, tibLen = 0;
 compiling = false;
 
 function forthInit() {

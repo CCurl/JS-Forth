@@ -13,11 +13,19 @@
           <th><h2><span>Block <pre id="blk-num">??</pre></span></h2></th>
         </tr>
         <tr>
-          <td><textarea id="forth-hist" rows="25" cols="40" autofocus
-            onkeydown="if (event.ctrlKey && event.key==='Enter'){ execHist(); }"></textarea>
+          <td><textarea id="forth-hist" rows="25" cols="40"
+            onkeydown="if (event.ctrlKey && event.key==='Enter'){ execSelected(); }"></textarea>
           </td>
           <td><textarea id="forth-output" rows="25" cols="64" readonly></textarea></td>
           <td><textarea id="forth-block"  rows="25" cols="64" readonly></textarea></td>
+        </tr>
+        <tr>
+          <td colspan="3">
+            <label><b>Command:</b> </label>
+            <input type="text" id="forth-input" size="80" autofocus
+              onkeydown="if (event.key==='Enter'){ runCommand(); }">
+            </input>
+          </td>
         </tr>
       </table>
     </div>
@@ -25,16 +33,22 @@
     <script type="application/forth">
       : version s" JS-Forth v2026.10.10" ; : cr 10 emit ;
       version s" hdr" html!
-      s" words" s" forth-hist" html!
-      version type ."  - Chris Curl" cr
-      cr ." Hello." cr
-      cr words  0 list
+      ( s" words" s" forth-hist" html! )
+      : banner version type ."  - Chris Curl" cr cr ." Hello." cr ;
+      banner cr words  0 list
     </script>
     <script>
-      function execHist() {
+      function execSelected() {
         var ta = document.getElementById('forth-hist');
         var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
         if (sel) runForth(sel);
+      }
+      function runCommand() {
+        var inp = document.getElementById('forth-input');
+        var ta = document.getElementById('forth-hist');
+        ta.value += inp.value + '\n';
+        runForth(inp.value);
+        inp.value = '';
       }
     </script>
   </body>
@@ -51,6 +65,15 @@
     pre {
       display: inline;
       margin: 0;
+    }
+
+    #forth-input {
+      height: 1.8em;
+      padding: 4px;
+    }
+
+    label {
+      font-size: 1.5em;
     }
 
     @media (prefers-color-scheme: dark) {
