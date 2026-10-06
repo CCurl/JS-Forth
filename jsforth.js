@@ -262,7 +262,7 @@ function runForth(src, logCmd = true) {
   try {
     outer(input);
   } catch (e) {
-    console.log(`\nError: ${e.message}`);
+    console.log(`Error: ${e.message}`);
   } finally {
     output.textContent += lines.join('') + " ok\n";
     output.scrollTop = output.scrollHeight;
