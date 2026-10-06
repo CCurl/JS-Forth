@@ -252,20 +252,20 @@ function outer(source) {
 
 forthInit();
 
-function runForth(src) {
+function runForth(src, logCmd = true) {
   const input = src ?? '';
   const output = document.getElementById('forth-output');
   const lines = [];
   const origLog = console.log;
   console.log = (...args) => lines.push(args.join(' '));
+  if (logCmd) { console.log(`->(( ${input} ))\n`); }
   try {
     outer(input);
-    if (!src){ type(' ok\n'); }
-    output.textContent = lines.join('');
   } catch (e) {
-    output.textContent = lines.join('');
-    output.textContent += `\nError: ${e.message}`;
+    console.log(`\nError: ${e.message}`);
   } finally {
+    output.textContent += lines.join('') + " ok\n";
+    output.scrollTop = output.scrollHeight;
     console.log = origLog;
   }
 }
@@ -279,9 +279,9 @@ window.addEventListener('load', async ()=>{              // load event handler
         if (s.src) {                                     // handle nested scripts
             await fetch(s.src)                           // fetch remote Forth script
             .then(r=>r.text())                           // get Forth commands
-            .then(cmd=>runForth(cmd))                    // send it to Forth VM
+            .then(cmd=>runForth(cmd, false))             // send it to Forth VM
         }
-        else runForth(s.innerText)
+        else runForth(s.innerText, false)
     }
 });
 
