@@ -298,3 +298,10 @@ blocks[1] = '\
 : bm lap swap for next .lap ;\n\
 : dump swap >a for a . ." - " @a+ . cr next <a ;\n\
 ';
+blocks[2] = '\
+355 113 / const pi\n\
+: squared ( n-- n1 ) dup * ;\n\
+: circle-area ( r--n ) squared pi * ;\n\
+: diameter ( r--n ) dup + ;\n\
+: circumference ( r--n ) 2 pi * * ;\n\
+';
