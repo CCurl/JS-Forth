@@ -26,6 +26,7 @@ function forthInit() {
   definePrim('drop',   () => { pop(); });
   definePrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
   definePrim('over',   () => { n=NOS(); push(n); });
+  definePrim('.s',     () => { doDotS(); });
   definePrim('@',      () => { setTOS(mem[TOS()]); });
   definePrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
   definePrim(',',      () => { Comma(pop()); });
@@ -147,6 +148,12 @@ function doWords() {
   type(`${str} (${last+1} words)`);
 }
 
+function doDotS() {
+  type('(');
+  for (let i = dstk+1; i <= dsp; i++) { type(` ${mem[i]}`); }
+  type(` )`);
+}
+
 function listForthBlock(n) {
     document.getElementById('forth-block').value = blocks[n];
     setHTMLValue("blk-num", n);
@@ -258,7 +265,7 @@ function runForth(src, logCmd = true) {
   const lines = [];
   const origLog = console.log;
   console.log = (...args) => lines.push(args.join(' '));
-  if (logCmd) { console.log(`->(( ${input} ))\n`); }
+  if (logCmd) { console.log(`--> ${input}\n`); }
   try {
     outer(input);
   } catch (e) {
@@ -301,7 +308,7 @@ blocks[1] = '\
 blocks[2] = '\
 355 113 / const pi\n\
 : squared ( n-- n1 ) dup * ;\n\
-: circle-area ( r--n ) squared pi * ;\n\
+: area ( r--n ) squared pi * ;\n\
 : diameter ( r--n ) dup + ;\n\
 : circumference ( r--n ) 2 pi * * ;\n\
 ';
