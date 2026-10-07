@@ -4,38 +4,52 @@
   </head>
   <body>
     <h1><a id="hdr" href="https://github.com/CCurl/JS-Forth" target="_blank">??</a></h1>
-    <div style="display: flex; gap: 10px; align-items: flex-start;">
-    <div style="display: flex; gap: 10px; margin-top: 10px;">
-      <table>
-        <tr>
-          <th><h2>Input (Select + Ctrl-Enter)</h2></th>
-          <th><h2>Output</h2></th>
-          <th><h2><span>Block <pre id="blk-num">??</pre></span></h2></th>
-        </tr>
-        <tr>
-          <td><textarea id="forth-hist" rows="25" cols="49"
+    
+    <div style="display: flex; gap: 15px; align-items: flex-start;">
+      <!-- Left: Textboxes (vertical) -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- Input -->
+        <div>
+          <h2>Input (Select + Ctrl-Enter)</h2>
+          <textarea id="forth-hist" rows="16" cols="64"
             onkeydown="if (event.ctrlKey && event.key==='Enter'){ execSelected(); }"></textarea>
-          </td>
-          <td><textarea id="forth-output" rows="25" cols="64" readonly></textarea></td>
-          <td><textarea id="forth-block"  rows="25" cols="64" readonly></textarea></td>
-        </tr>
-        <tr>
-          <td colspan="3">
-            <label><b>Command:</b> </label>
-            <input type="text" id="forth-input" size="80" autofocus
-              onkeydown="if (event.key==='Enter'){ runCommand(); }">
-            </input>
-          </td>
-        </tr>
-      </table>
+        </div>
+        <!-- Output -->
+        <div>
+          <h2>Output</h2>
+          <textarea id="forth-output" rows="16" cols="64" readonly></textarea>
+        </div>
+        <!-- Block -->
+        <div>
+          <h2>Block <pre id="blk-num" style="display: inline;">??</pre></h2>
+          <textarea id="forth-block" rows="16" cols="64" readonly></textarea>
+        </div>
+      </div>
+      
+      <!-- Right: Canvas -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <canvas id="raycaster-canvas" width="800" height="400" style="border: 1px solid #666; display: block;"></canvas>
+        <!-- Command input -->
+        <div>
+          <label><b>Command:</b> </label>
+          <input type="text" id="forth-input" size="85" autofocus value="game-init"
+            onkeydown="if (event.key==='Enter'){ runCommand(); }">
+        </div>
+      </div>
     </div>
     <script src="./jsforth.js"></script>
+    <script src="./ray-engine.js"></script>
+    <script src="./doom-o.js"></script>
     <script type="application/forth">
       : version s" JS-Forth v2026.10.07" ; : cr 10 emit ;
       version s" hdr" html!
       ( s" words" s" forth-hist" html! )
       : banner version type ."  - Chris Curl" cr cr ." Hello." cr ;
       banner cr words  0 list
+    </script>
+    <script>
+      // Register raycasting Forth words after initialization
+      registerRaycastWords();
     </script>
     <script>
       function execSelected() {
