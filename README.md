@@ -2,9 +2,15 @@
 
 A minimal, efficient Forth interpreter that runs in the browser. Supports word definitions, arithmetic, stack operations, memory access, and can be embedded directly in HTML via `<script type="application/forth">` tags.
 
+## Quick Start
+- Copy the 2 files: 'jsforth.html' and 'jsforth.js'.
+- Paste them into a folder of your choice.
+- Open the 'jsforth.html' file in a browser of your choice.
+- Have fun!
+
 ## Overview
 
-This is a complete Forth virtual machine implemented in ~200 lines of JavaScript. It features:
+This is a complete Forth virtual machine implemented in ~300 lines of JavaScript. It features:
 - Data stack and return stack with separate memory regions
 - Compiled word definitions stored in shared memory
 - Immediate words (executed during compilation)
@@ -19,9 +25,10 @@ This is a complete Forth virtual machine implemented in ~200 lines of JavaScript
 
 - **Memory (`mem`)**: Unified array holding stacks, dictionary, and compiled code
   - Data Stack: base 0, grows upward
-  - Return Stack: base 50, grows upward
-  - Loop Stack: base 100, grows upward
-  - Compiled Code: starts at address 150
+  - Return Stack: base 65, grows upward
+  - Loop Stack: base 130, grows upward
+  - Temp Stack: base 161, grows upward
+  - Compiled Code: starts at address 194
 - **Dictionary (`dictionary[]`)**: Array of word definitions with name, execution token (xt), and immediate flag
 - **Input Buffer (`tib`, `pos`, `tibLen`)**: Tokenization state
 - **Program Counter (`pc`)**: Current instruction pointer during execution
@@ -46,49 +53,41 @@ This is a complete Forth virtual machine implemented in ~200 lines of JavaScript
 
 ### Compilation Process
 
+- `(` skips until the next word that is `)`
 - `:` begins a word definition, compiling subsequent words to memory
 - `;` ends compilation and appends `exit` token
 - Numbers are compiled as `lit` (literal) followed by the value
 - Word references are compiled as their execution token (address or function)
-- When compiling, `Comma()` stores values in memory at `here` pointer
+- When compiling, `Comma()` stores values at `here`. Then `here` is incremented.
 
-## Usage
+### Block System
+
+Blocks are stored in a JavaScript array (`blocks[]`) and accessed via:
+- `n list` - Display block n in the UI textarea
+- `n load` - Load/Execute block n
+- Blocks are stored in the jsforth.js file - edit them there
 
 ### HTML Integration
 
-Include the interpreter in your HTML file:
+The interpreter can update HTML elements dynamically:
+- `html!` primitive takes a value and element ID from the stack
+- Elements are selected by `id` attribute
+- Updates set the element's `textContent` property
+- Useful for displaying computed results, version info, block numbers, etc.
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Forth.js Demo</title>
-  <link rel="stylesheet" href="jsforth.css">
-</head>
-<body>
-  <h1>JS-Forth v2026.10.04 - Chris Curl</h1>
-  <input 
-    id="forth-tib" 
-    type="text" 
-    placeholder="Enter Forth code" 
-    autofocus
-    onkeydown="if (event.key==='Enter') { repl(); }">
-  <br>
-  <textarea id="forth-block" rows="10" cols="50" style="margin-top: 10px;"></textarea>
-  <button onclick="runForth(undefined)">Run</button>
-  <pre id="forth-output"></pre>
-  
-  <script src="jsforth.js"></script>
-</body>
-</html>
+```forth
+s" JS-Forth v2026.10.10" s" hdr" html!   \ Update element id="hdr"
+5 s" block-num" html!                    \ Display block number
 ```
 
-The interface includes:
-- **REPL Input**: Single-line text input for quick Forth commands (press Enter to execute)
-- **Multi-line Editor**: Textarea for larger programs
-- **Run Button**: Executes code from the textarea
-- **Output Window**: Pre-formatted text display for results
-- **Dark Mode**: Automatic detection of system color scheme preference
+In your HTML, add corresponding `id` attributes:
+
+```html
+<h1 id="hdr">??</h1>
+<span>Block <pre id="blk-num">??</pre></span>
+```
+
+The Forth code then updates these elements when executed.
 
 ### Embedded Forth Scripts
 
@@ -96,7 +95,7 @@ Embed Forth code directly in HTML using `type="application/forth"`:
 
 ```html
 <script type="application/forth">
-  5 3 + .
+  ." hello world!"
 </script>
 
 <script type="application/forth" src="program.forth"></script>
@@ -121,94 +120,64 @@ outer('10 2 / .');    // Outputs: 5
 
 ## Primitive Words
 
-### Stack Manipulation
-- `dup` - Duplicate top of stack: `( n -- n n )`
-- `drop` - Remove top of stack: `( n -- )`
-- `swap` - Exchange top two items: `( a b -- b a )`
-- `over` - Copy second to top: `( a b -- a b a )`
+Stack effects below use `--` to separate inputs from outputs. True comparison results are `-1`; false results are `0`.
 
-### Arithmetic
-- `+` - Add: `( a b -- a+b )`
-- `-` - Subtract: `( a b -- a-b )`
-- `*` - Multiply: `( a b -- a*b )`
-- `/` - Divide (truncated): `( a b -- a/b )`
+### Stack and Arithmetic
+- `dup` - Duplicate the top item: `( n -- n n )`
+- `drop` - Remove the top item: `( n -- )`
+- `swap` - Exchange the top two items: `( a b -- b a )`
+- `over` - Copy the second item to the top: `( a b -- a b a )`
+- `+`, `-`, `*`, `/` - Arithmetic: `( a b -- result )`; division uses JavaScript `/` and is not truncated.
+- `<`, `=`, `>` - Compare two values: `( a b -- flag )`
+- `0=` - Test whether the top item is zero: `( n -- flag )`
+- `1+` - Increment the top item: `( n -- n+1 )`
 
-### Comparison
-- `<` - Less than: `( a b -- flag )` where flag is -1 (true) or 0 (false)
-- `=` - Equal: `( a b -- flag )` where flag is -1 (true) or 0 (false)
-- `>` - Greater than: `( a b -- flag )` where flag is -1 (true) or 0 (false)
-- `0=` - Test zero: `( n -- flag )` where flag is -1 (true) or 0 (false)
+### Bitwise and Memory
+- `and`, `or`, `xor` - Bitwise operations on the top two values: `( a b -- result )`
+- `com` - Bitwise complement. Complements the top of stack.
+- `@` - Fetch a memory cell: `( addr -- value )`
+- `!` - Store a value at an address: `( value addr -- )`
+- `,` - Compile a value at the current `here` address: `( n -- )`
+- `here` - Push the current compilation address: `( -- addr )`
 
-### Bitwise
-- `and` - Bitwise AND: `( a b -- a&b )`
-- `or`  - Bitwise OR:  `( a b -- a|b )`
-- `xor` - Bitwise XOR: `( a b -- a^b )`
-- `com` - Bitwise COMPLEMENT: `( a -- ~a )`
-
-### Memory Access
-- `@` - Fetch from memory: `( addr -- value )`
-- `!` - Store to memory: `( value addr -- )`
-- `,` - Compile value to code space: `( n -- )`
-
-### I/O
-- `.` - Print top of stack and remove: `( n -- )`
+### Output and HTML
+- `.` - Print and remove the top item; numeric values are followed by a space: `( n -- )`
+- `type` - Print and remove a string: `( str -- )`
+- `emit` - Print the character for a character code: `( char-code -- )`
+- `html!` - Set an element's `textContent`: `( value id-str -- )`; for example, `5 s" count" html!` sets the text of the element with `id="count"` to `5`.
+- `s"` - Read a string up to the next quote; push it, or compile it as a literal when compiling.
+- `."` - Read a string and print it immediately, or compile it to print when executed.
 
 ### Control Flow
-- `exit` - Return from word (automatic at end of `:` definitions)
-- `if` ... `then` - Conditional execution: `( flag -- )` executes code if flag is true (!= 0)
-- `begin` ... `until` - Loop until flag is true: `( ... flag -- ... )` exits when flag is true
-- `begin` ... `while` - Loop while flag is true: `( ... flag -- ... )` continues while flag is true
-- `begin` ... `again` - Infinite loop: `( -- )` jumps back to begin unconditionally
-- `for` ... `next` - Counted loop: `( n -- )` executes n times, use `i` to access loop counter
-- `i` - Loop counter: `( -- count )` pushes current iteration number (0 to n-1)
+- `if` ... `then` - Execute the body when the flag is nonzero: `( flag -- )`.
+- `begin` ... `until` - Repeat back to `begin` while the flag is zero: `( ... flag -- ... )`.
+- `begin` ... `while` - Jump back to `begin` when the flag is nonzero; otherwise continue after `while`.
+- `begin` ... `again` - Unconditionally jump back to `begin`.
+- `for` ... `next` - Run the body the specified number of times: `( n -- )`.
+- `i` - Push the current loop index, starting at zero: `( -- index )`.
+- `exit` - Return from the current word.
 
-## Examples
+### Dictionary and Blocks
+- `words` - Print the defined word names.
+- `see` - Read the next input word and print its definition.
+- `var` - Read the next word and define it as a variable.
+- `const` - Read the next word and define it as a constant using the value popped from the stack.
+- `immediate` - Mark the most recently defined word as immediate.
+- `load` - Execute a stored block: `( block-num -- )`.
+- `list` - Display a stored block in the UI textarea: `( block-num -- )`.
 
-### Basic Arithmetic
-```forth
-5 3 + .          \ Output: 8
-10 2 / .         \ Output: 5
-7 2 * .          \ Output: 14
-```
+### Variables and Temporary Stack
+- `a`, `b` - Push the corresponding variable value: `( -- val )`.
+- `a!`, `b!` - Store the top value in the corresponding variable: `( val -- )`.
+- `>t` - Move the top data-stack value to the temporary stack: `( val -- )`.
+- `t@` - Copy the temporary stack's top value to the data stack: `( -- val )`.
+- `t>` - Pop the temporary stack onto the data stack: `( -- val )`.
 
-### Define Custom Words
-```forth
-: double dup + ;
-5 double .       \ Output: 10
-
-: square dup * ;
-4 square .       \ Output: 16
-
-: abs dup 0= drop swap drop ;
--5 abs .         \ Output: 5
-```
-
-### Stack Manipulation
-```forth
-1 2 3 swap .     \ Output: 2
-1 2 3 over .     \ Output: 2
-```
-
-### Memory Operations
-```forth
-42 100 !         \ Store 42 at address 100
-100 @ .          \ Load and print: 42
-```
-
-### Conditional Logic (using flags)
-```forth
-5 3 > .          \ Output: -1 (true)
-5 3 < .          \ Output: 0 (false)
-5 5 = .          \ Output: -1 (true)
-```
+### Utilities
+- `timer` - Push the current Unix timestamp in milliseconds: `( -- ms )`.
+- `cycle` - Push the `cycle` variable. The interpreter currently does not increment it.
 
 ## Implementation Details
-
-### Memory Layout
-- **0-49**: Reserved/unused
-- **50-99**: Data stack (grows upward)
-- **100-149**: Return stack (grows upward)
-- **150+**: Compiled word definitions and literals
 
 ### Function Reference
 
@@ -226,51 +195,14 @@ outer('10 2 / .');    // Outputs: 5
 - `doWord(token)` - Look up and execute/compile word
 - `doColon(token)` - Begin word definition
 - `doSemi(token)` - End word definition
-
-### Limitations
-
-- Limited error handling
-- Stack underflow returns 0 instead of error
-- No string literals or comments
-- Fixed memory size (array length)
-
-## How It Works
-
-### Parsing
-
-`nextWord(delim)` reads the next token without repeatedly slicing the input string:
-- Uses a position pointer (`pos`) to track location in `tib`
-- Caches `tib.length` to avoid repeated lookups
-- Skips whitespace when delimiter is space
-- Returns word length
-
-### Compilation
-
-When `:` is encountered:
-1. Next token becomes the word name
-2. `compiling` flag is set to true
-3. Subsequent tokens are added to memory via `Comma()`
-4. `;` seals the definition and sets `compiling = false`
-
-### Execution
-
-- Primitives execute immediately via lambda functions
-- User-defined words are stored as memory addresses
-- `inner()` sets the program counter and executes compiled code
-- Return addresses are pushed/popped using the return stack
-
-## Performance Optimizations
-
-1. **Index-based parsing**: `pos` pointer instead of string slicing
-2. **Cached length**: `tibLen` computed once per input
-3. **Efficient lookup**: `charCodeAt()` for whitespace detection
-4. **Inline lambdas**: Primitives defined inline in `definePrimitives()`
-5. **Direct stack access**: `TOS()`, `setTOS()` for fast operations
+- `listForthBlock(n)` - Display block n in the UI textarea
+- `setHTMLValue(id, val)` - Update HTML element with given ID
+- `doSee()` - Inspect word definition (next word from input)
 
 ## Browser Integration
 
-The `load` event handler automatically:
-1. Finds all `<script type="application/forth">` tags
-2. Loads external files via `fetch()` if `src` is set
-3. Executes inline Forth code
-4. Routes output to console.log (captured and displayed)
+The wondow `load` event handler automatically:
+- Finds all `<script type="application/forth">` tags
+- Loads external files via `fetch()` if `src` is set
+- Executes inline Forth code
+- Routes output to console.log (captured and displayed)
