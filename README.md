@@ -201,8 +201,9 @@ Stack effects below use `--` to separate inputs from outputs. True comparison re
 
 ## Browser Integration
 
-The wondow `load` event handler automatically:
+The window `load` event handler automatically:
 - Finds all `<script type="application/forth">` tags
 - Loads external files via `fetch()` if `src` is set
 - Executes inline Forth code
 - Routes output to console.log (captured and displayed)
+- This is accomplished by the `window.addEventListener()` code in `jsforth.js`
