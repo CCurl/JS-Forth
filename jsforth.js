@@ -288,27 +288,27 @@ window.addEventListener('load', async ()=>{              // load event handler
             .then(r=>r.text())                           // get Forth commands
             .then(cmd=>runForth(cmd, false))             // send it to Forth VM
         }
-        else runForth(s.innerText, false)
+        else { runForth(s.innerText, false); }
     }
 });
 
 // Blocks - edit them here!
-blocks[0] = '\
-: >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;\n\
-: >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;\n\
-: >ab >b >a ;   : <ab <a <b ;\n\
-';
-blocks[1] = '\
-0 load\n\
-: k 1000 * ; : mil k k ;\n\
-: lap timer ; : .lap timer swap - . ;\n\
-: bm lap swap for next .lap ;\n\
-: dump swap >a for a . ." - " @a+ . cr next <a ;\n\
-';
-blocks[2] = '\
-355 113 / const pi\n\
-: squared ( n-- n1 ) dup * ;\n\
-: area ( r--n ) squared pi * ;\n\
-: diameter ( r--n ) dup + ;\n\
-: circumference ( r--n ) 2 pi * * ;\n\
-';
+blocks[0] = `
+: >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;
+: >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;
+: >ab >b >a ;   : <ab <a <b ;
+`;
+blocks[1] = `
+0 load
+: k 1000 * ; : mil k k ;
+: lap timer ; : .lap timer swap - . ;
+: bm lap swap for next .lap ;
+: dump swap >a for a . ." - " @a+ . cr next <a ;
+`;
+blocks[2] = `
+355 113 / const pi
+: squared ( n-- n1 ) dup * ;
+: area ( r--n ) squared pi * ;
+: diameter ( r--n ) dup + ;
+: circumference ( r--n ) 2 pi * * ;
+`;
