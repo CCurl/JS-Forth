@@ -129,17 +129,16 @@ function raycastInit() {
 
 // Game-specific input handling
 function handleKeyboardInput() {
-  // Movement
-  if (raycastGame.keys.w) { runForth("mF", false, false); }
-  if (raycastGame.keys.s) { runForth("mB", false, false); }
-  if (raycastGame.keys.a) { runForth("mL", false, false); }
-  if (raycastGame.keys.d) { runForth("mR", false, false); }
+  // Moving
+  if (raycastGame.keys.w) { outer("mF"); }  // Move forward
+  if (raycastGame.keys.s) { outer("mB"); }  // Move backward
+  if (raycastGame.keys.a) { outer("mL"); }  // Move left
+  if (raycastGame.keys.d) { outer("mR"); }  // Move right
   
-  // Rotation
-  if (raycastGame.keys.j) { runForth("tL", false, false); }
-  if (raycastGame.keys.k) { runForth("tR", false, false); }
+  // Turning
+  if (raycastGame.keys.j) { outer("tL"); }  // Turn left
+  if (raycastGame.keys.k) { outer("tR"); }  // Turn right
 }
-
 
 // Register Forth words for raycaster control
 // These will be called after jsforth.js initializes
@@ -168,11 +167,11 @@ function registerRaycastWords() {
   // Game words documentation
   blocks[10] = `( Doom-O Game Words )
 ( Keyboard controls: WASD to move, JK to turn, ESC to stop )
-( game-go   -- Initialize and start the raycaster game )
-( mF        -- Move player forward 0.50 units with collision )
-( mB        -- Move player backward 0.50 units with collision )
-( tL        -- Turn player mL by 0.2 radians )
-( tR        -- Turn player mR by 0.2 radians )
+( game-go   -- Initialize and start the game )
+( mF        -- Move forward )
+( mB        -- Move backward )
+( tL        -- Turn left )
+( tR        -- Turn right )
 ( game-stop -- Stop the game and return to Forth )
 `;
 }
