@@ -130,39 +130,39 @@ function raycastInit() {
 // Game-specific input handling
 function handleKeyboardInput() {
   // Movement
-  if (raycastGame.keys.w) { moveForward(); }
-  if (raycastGame.keys.s) { moveBackward(); }
-  if (raycastGame.keys.a) { moveLeft(); }
-  if (raycastGame.keys.d) { moveRight(); }
+  if (raycastGame.keys.w) { runForth("mF", false); }
+  if (raycastGame.keys.s) { runForth("mB", false); }
+  if (raycastGame.keys.a) { runForth("mL", false); }
+  if (raycastGame.keys.d) { runForth("mR", false); }
   
   // Rotation
-  if (raycastGame.keys.j) { turnLeft(); }
-  if (raycastGame.keys.k) { turnRight(); }
+  if (raycastGame.keys.j) { runForth("tL", false); }
+  if (raycastGame.keys.k) { runForth("tR", false); }
 }
 
 
 // Register Forth words for raycaster control
 // These will be called after jsforth.js initializes
 function registerRaycastWords() {
-  definePrim('game-init',  () => { raycastInit(); });
-  definePrim('move-fwd',   () => { moveForward(); });
-  definePrim('move-back',  () => { moveBackward(); });
-  definePrim('move-left',  () => { moveLeft(); });
-  definePrim('move-right', () => { moveRight(); });
-  definePrim('turn-left',  () => { turnLeft(); });
-  definePrim('turn-right', () => { turnRight(); });
-  definePrim('game-stop',  () => { raycastGame.running = false; });
+  definePrim('game-go', () => { raycastInit(); });
+  definePrim('stop',    () => { raycastGame.running = false; });
+  definePrim('mF',    () => { moveForward(); });
+  definePrim('mB',    () => { moveBackward(); });
+  definePrim('mL',    () => { moveLeft(); });
+  definePrim('mR',    () => { moveRight(); });
+  definePrim('tL',    () => { turnLeft(); });
+  definePrim('tR',    () => { turnRight(); });
   definePrim('game-frame', () => { renderRaycastFrame(); });
   
   // Add demo block
   blocks[3] = `
-: go game-init ."  Running! W/A/S/D=move J/K=turn ESC=stop" cr ;
-: w move-fwd ;   : wu w game-frame ; : ws for w next game-frame ;
-: a move-left ;  : au a game-frame ; : as for a next game-frame ;
-: s move-back ;  : su s game-frame ; : ss for s next game-frame ;
-: d move-right ; : du d game-frame ; : ds for d next game-frame ;
-: j turn-left  ; : ju j game-frame ; : js for j next game-frame ;
-: k turn-right ; : ku k game-frame ; : ks for k next game-frame ;
+: go game-go ."  Running! W/A/S/D=move J/K=turn ESC=stop" cr ;
+: w mF ; : wu w game-frame ; : ws for w next game-frame ;
+: a mL ; : au a game-frame ; : as for a next game-frame ;
+: s mB ; : su s game-frame ; : ss for s next game-frame ;
+: d mR ; : du d game-frame ; : ds for d next game-frame ;
+: j tL ; : ju j game-frame ; : js for j next game-frame ;
+: k tR ; : ku k game-frame ; : ks for k next game-frame ;
 `;
   
   // Game words documentation
@@ -170,11 +170,11 @@ function registerRaycastWords() {
 ( Doom-O Game Words )
 ( Keyboard controls: WASD to move, JK to turn, ESC to stop )
 ( game-init         -- Initialize and start the raycaster game )
-( move-fwd          -- Move player forward 0.50 units with collision )
-( move-back         -- Move player backward 0.50 units with collision )
-( turn-left         -- Turn player left by 0.2 radians )
-( turn-right        -- Turn player right by 0.2 radians )
-( game-stop         -- Stop the game and return to Forth )
+( mF          -- Move player forward 0.50 units with collision )
+( mB         -- Move player backward 0.50 units with collision )
+( tL         -- Turn player mL by 0.2 radians )
+( tR        -- Turn player mR by 0.2 radians )
+( stop         -- Stop the game and return to Forth )
 `;
 }
 

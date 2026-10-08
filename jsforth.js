@@ -260,20 +260,24 @@ function outer(source) {
 forthInit();
 
 function runForth(src, logCmd = true) {
-  const input = src ?? '';
-  const output = document.getElementById('forth-output');
-  const lines = [];
   const origLog = console.log;
-  console.log = (...args) => lines.push(args.join(' '));
-  if (logCmd) { console.log(`--> ${input}\n`); }
+  const lines = [];
+  const input = src ?? '';
+  if (logCmd) {
+    console.log = (...args) => lines.push(args.join(' '));
+    console.log(`--> ${input}\n`);
+  }
   try {
     outer(input);
   } catch (e) {
     console.log(`Error: ${e.message}`);
   } finally {
-    output.textContent += lines.join('') + " ok\n";
-    output.scrollTop = output.scrollHeight;
-    console.log = origLog;
+    if (logCmd) {
+      const output = document.getElementById('forth-output');
+      output.textContent += lines.join('') + " ok\n";
+      output.scrollTop = output.scrollHeight;
+      console.log = origLog;
+    }
   }
 }
 
