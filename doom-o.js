@@ -143,15 +143,15 @@ function handleKeyboardInput() {
 // Register Forth words for raycaster control
 // These will be called after jsforth.js initializes
 function registerRaycastWords() {
-  definePrim('game-go',   () => { raycastInit(); });
-  definePrim('game-stop', () => { raycastGame.running = false; });
-  definePrim('mF',    () => { moveForward(); });
-  definePrim('mB',    () => { moveBackward(); });
-  definePrim('mL',    () => { moveLeft(); });
-  definePrim('mR',    () => { moveRight(); });
-  definePrim('tL',    () => { turnLeft(); });
-  definePrim('tR',    () => { turnRight(); });
-  definePrim('game-frame', () => { renderRaycastFrame(); });
+  forthPrim('game-go',    () => { raycastInit(); });
+  forthPrim('game-stop',  () => { raycastGame.running = false; });
+  forthPrim('game-frame', () => { renderRaycastFrame(); });
+  forthPrim('mF', () => { moveForward(); });
+  forthPrim('mB', () => { moveBackward(); });
+  forthPrim('mL', () => { moveLeft(); });
+  forthPrim('mR', () => { moveRight(); });
+  forthPrim('tL', () => { turnLeft(); });
+  forthPrim('tR', () => { turnRight(); });
   
   // Add demo block
   blocks[3] = `

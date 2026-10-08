@@ -188,8 +188,8 @@ Stack effects below use `--` to separate inputs from outputs. True comparison re
 - `inner(start)` - Execute compiled code starting at address
 - `outer(source)` - Parse and execute/compile source string
 - `define(name, immediate)` - Add entry to dictionary
-- `definePrim(name, fn)` - Add a primitive to dictionary
-- `defineImm(name, fn)` - Add an IMMEDIATE primitive to dictionary
+- `forthPrim(name, fn)` - Add a primitive to dictionary
+- `forthImm(name, fn)` - Add an IMMEDIATE primitive to dictionary
 - `nextWord(delim)` - Extract next token from input buffer
 - `doNum(token)` - Parse and handle numeric literal
 - `doWord(token)` - Look up and execute/compile word
