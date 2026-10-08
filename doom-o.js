@@ -152,11 +152,18 @@ function registerRaycastWords() {
   definePrim('turn-left',  () => { turnLeft(); });
   definePrim('turn-right', () => { turnRight(); });
   definePrim('game-stop',  () => { raycastGame.running = false; });
+  definePrim('game-frame', () => { renderRaycastFrame(); });
   
   // Add demo block
   blocks[3] = `
-  game-init ."  Raycaster started! WASD=move JK=turn ESC=stop" cr
-  `;
+: go game-init ."  Running! W/A/S/D=move J/K=turn ESC=stop" cr ;
+: w move-fwd ;   : wu w game-frame ; : ws for w next game-frame ;
+: a move-left ;  : au a game-frame ; : as for a next game-frame ;
+: s move-back ;  : su s game-frame ; : ss for s next game-frame ;
+: d move-right ; : du d game-frame ; : ds for d next game-frame ;
+: j turn-left  ; : ju j game-frame ; : js for j next game-frame ;
+: k turn-right ; : ku k game-frame ; : ks for k next game-frame ;
+`;
   
   // Game words documentation
   blocks[10] = `

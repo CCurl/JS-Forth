@@ -86,27 +86,36 @@ function getGraffitiColor(x, y, baseBrightness) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-function createRaycastRenderer(game, world) {
-  const outputCtx = game.ctx;
-  const renderCanvas = document.createElement('canvas');
+let renderCanvas = undefined;
+let outputCtx = undefined, ctx2D = undefined;
+let game = undefined;
+let world = undefined;
+
+function createRaycastRenderer(theGame, theWorld) {
+  game = theGame;
+  world = theWorld;
+  outputCtx = game.ctx;
+  if (!renderCanvas) renderCanvas = document.createElement('canvas');
   renderCanvas.width = Math.max(1, Math.floor(game.canvas.width / 2));
   renderCanvas.height = Math.max(1, Math.floor(game.canvas.height / 2));
-  const ctx = renderCanvas.getContext('2d');
   outputCtx.imageSmoothingEnabled = false;
+  return renderRaycastFrame;
+}
 
-  return function renderRaycastFrame() {
+function renderRaycastFrame() {
+    if (!ctx2D) { ctx2D = renderCanvas.getContext('2d'); }
     const width = renderCanvas.width;
     const height = renderCanvas.height;
     const player = game.player;
     const fov = Math.PI / 2.4; // ~60 degrees
     
     // Clear screen
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, width, height);
+    ctx2D.fillStyle = '#111';
+    ctx2D.fillRect(0, 0, width, height);
     
     // Draw ceiling
-    ctx.fillStyle = '#DFE8F0';
-    ctx.fillRect(0, 0, width, height / 2);
+    ctx2D.fillStyle = '#DFE8F0';
+    ctx2D.fillRect(0, 0, width, height / 2);
     
     // Draw checkerboard floor
     const floorStart = height / 2;
@@ -119,7 +128,7 @@ function createRaycastRenderer(game, world) {
       raySin[screenX] = Math.sin(rayAngle);
     }
 
-    const floorPixels = ctx.createImageData(width, height - floorStart);
+    const floorPixels = ctx2D.createImageData(width, height - floorStart);
     const floorData = floorPixels.data;
     for (let screenY = Math.floor(floorStart); screenY < height; screenY++) {
       const verticalDist = screenY - height / 2;
@@ -137,7 +146,7 @@ function createRaycastRenderer(game, world) {
         floorData[pixelIndex++] = 255;
       }
     }
-    ctx.putImageData(floorPixels, 0, floorStart);
+    ctx2D.putImageData(floorPixels, 0, floorStart);
     
     // Cast rays and render columns
     for (let col = 0; col < width; col++) {
@@ -170,14 +179,13 @@ function createRaycastRenderer(game, world) {
         if (textureY > 1) textureY = 1;
         
         const color = getGraffitiColor(rayX * 2, rayY * 2 + textureY, baseBrightness);
-        ctx.fillStyle = color;
-        ctx.fillRect(col, pixelY, 1, Math.min(textureStep, bottom - pixelY));
+        ctx2D.fillStyle = color;
+        ctx2D.fillRect(col, pixelY, 1, Math.min(textureStep, bottom - pixelY));
       }
     }
 
     outputCtx.drawImage(renderCanvas, 0, 0, game.canvas.width, game.canvas.height);
-  };
-}
+  }
 
 function createRaycastLoop(renderFn, inputFn, game) {
   return function raycastLoop(time) {
