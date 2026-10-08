@@ -130,22 +130,22 @@ function raycastInit() {
 // Game-specific input handling
 function handleKeyboardInput() {
   // Movement
-  if (raycastGame.keys.w) { runForth("mF", false); }
-  if (raycastGame.keys.s) { runForth("mB", false); }
-  if (raycastGame.keys.a) { runForth("mL", false); }
-  if (raycastGame.keys.d) { runForth("mR", false); }
+  if (raycastGame.keys.w) { runForth("mF", false, false); }
+  if (raycastGame.keys.s) { runForth("mB", false, false); }
+  if (raycastGame.keys.a) { runForth("mL", false, false); }
+  if (raycastGame.keys.d) { runForth("mR", false, false); }
   
   // Rotation
-  if (raycastGame.keys.j) { runForth("tL", false); }
-  if (raycastGame.keys.k) { runForth("tR", false); }
+  if (raycastGame.keys.j) { runForth("tL", false, false); }
+  if (raycastGame.keys.k) { runForth("tR", false, false); }
 }
 
 
 // Register Forth words for raycaster control
 // These will be called after jsforth.js initializes
 function registerRaycastWords() {
-  definePrim('game-go', () => { raycastInit(); });
-  definePrim('stop',    () => { raycastGame.running = false; });
+  definePrim('game-go',   () => { raycastInit(); });
+  definePrim('game-stop', () => { raycastGame.running = false; });
   definePrim('mF',    () => { moveForward(); });
   definePrim('mB',    () => { moveBackward(); });
   definePrim('mL',    () => { moveLeft(); });
@@ -156,7 +156,7 @@ function registerRaycastWords() {
   
   // Add demo block
   blocks[3] = `
-: go game-go ."  Running! W/A/S/D=move J/K=turn ESC=stop" cr ;
+: go game-go ."  Running!" 10 list ;
 : w mF ; : wu w game-frame ; : ws for w next game-frame ;
 : a mL ; : au a game-frame ; : as for a next game-frame ;
 : s mB ; : su s game-frame ; : ss for s next game-frame ;
@@ -166,15 +166,14 @@ function registerRaycastWords() {
 `;
   
   // Game words documentation
-  blocks[10] = `
-( Doom-O Game Words )
+  blocks[10] = `( Doom-O Game Words )
 ( Keyboard controls: WASD to move, JK to turn, ESC to stop )
-( game-init         -- Initialize and start the raycaster game )
-( mF          -- Move player forward 0.50 units with collision )
-( mB         -- Move player backward 0.50 units with collision )
-( tL         -- Turn player mL by 0.2 radians )
+( game-go   -- Initialize and start the raycaster game )
+( mF        -- Move player forward 0.50 units with collision )
+( mB        -- Move player backward 0.50 units with collision )
+( tL        -- Turn player mL by 0.2 radians )
 ( tR        -- Turn player mR by 0.2 radians )
-( stop         -- Stop the game and return to Forth )
+( game-stop -- Stop the game and return to Forth )
 `;
 }
 

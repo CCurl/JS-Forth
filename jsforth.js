@@ -259,25 +259,27 @@ function outer(source) {
 
 forthInit();
 
-function runForth(src, logCmd = true) {
+function runForth(src, logCmd = true, logOutput = true) {
   const origLog = console.log;
   const lines = [];
   const input = src ?? '';
-  if (logCmd) {
+  if (logOutput) {
     console.log = (...args) => lines.push(args.join(' '));
-    console.log(`--> ${input}\n`);
+    if (logCmd) {
+      console.log(`--> ${input}\n`);
+    }
   }
   try {
     outer(input);
   } catch (e) {
     console.log(`Error: ${e.message}`);
   } finally {
-    if (logCmd) {
+    if (logOutput) {
       const output = document.getElementById('forth-output');
       output.textContent += lines.join('') + " ok\n";
       output.scrollTop = output.scrollHeight;
-      console.log = origLog;
     }
+    console.log = origLog;
   }
 }
 
