@@ -87,10 +87,16 @@ function getGraffitiColor(x, y, baseBrightness) {
 }
 
 function createRaycastRenderer(game, world) {
+  const outputCtx = game.ctx;
+  const renderCanvas = document.createElement('canvas');
+  renderCanvas.width = Math.max(1, Math.floor(game.canvas.width / 2));
+  renderCanvas.height = Math.max(1, Math.floor(game.canvas.height / 2));
+  const ctx = renderCanvas.getContext('2d');
+  outputCtx.imageSmoothingEnabled = false;
+
   return function renderRaycastFrame() {
-    const ctx = game.ctx;
-    const width = game.canvas.width;
-    const height = game.canvas.height;
+    const width = renderCanvas.width;
+    const height = renderCanvas.height;
     const player = game.player;
     const fov = Math.PI / 2.4; // ~60 degrees
     
@@ -105,29 +111,33 @@ function createRaycastRenderer(game, world) {
     // Draw checkerboard floor
     const floorStart = height / 2;
     const floorSize = 0.5; // size of each checkerboard square
-    
+    const rayCos = new Float64Array(width);
+    const raySin = new Float64Array(width);
+    for (let screenX = 0; screenX < width; screenX++) {
+      const rayAngle = player.angle - fov / 2 + (screenX / width) * fov;
+      rayCos[screenX] = Math.cos(rayAngle);
+      raySin[screenX] = Math.sin(rayAngle);
+    }
+
+    const floorPixels = ctx.createImageData(width, height - floorStart);
+    const floorData = floorPixels.data;
     for (let screenY = Math.floor(floorStart); screenY < height; screenY++) {
+      const verticalDist = screenY - height / 2;
+      const horizDist = (height / 2) / verticalDist;
+      let pixelIndex = (screenY - floorStart) * width * 4;
       for (let screenX = 0; screenX < width; screenX++) {
-        // Calculate ray angle for this column
-        const rayAngle = player.angle - fov / 2 + (screenX / width) * fov;
-        
-        // Calculate distance to this floor pixel
-        const verticalDist = screenY - height / 2;
-        const horizDist = (height / 2) / verticalDist; // distance to floor at this screen row
-        
-        // Calculate world coordinates
-        const worldX = player.x + Math.cos(rayAngle) * horizDist;
-        const worldY = player.y + Math.sin(rayAngle) * horizDist;
-        
-        // Determine checkerboard tile
+        const worldX = player.x + rayCos[screenX] * horizDist;
+        const worldY = player.y + raySin[screenX] * horizDist;
         const tileX = Math.floor(worldX / floorSize);
         const tileY = Math.floor(worldY / floorSize);
         const isYellow = (tileX + tileY) % 2 === 0;
-        
-        ctx.fillStyle = isYellow ? '#FFDD44' : '#8B6914'; // bright yellow and brown
-        ctx.fillRect(screenX, screenY, 1, 1);
+        floorData[pixelIndex++] = isYellow ? 255 : 139;
+        floorData[pixelIndex++] = isYellow ? 221 : 105;
+        floorData[pixelIndex++] = isYellow ? 68 : 20;
+        floorData[pixelIndex++] = 255;
       }
     }
+    ctx.putImageData(floorPixels, 0, floorStart);
     
     // Cast rays and render columns
     for (let col = 0; col < width; col++) {
@@ -138,7 +148,7 @@ function createRaycastRenderer(game, world) {
       const correctedDist = dist * Math.cos(rayAngle - player.angle);
       
       // Calculate wall height with sub-pixel precision
-      const wallHeight = Math.max(10, (height / correctedDist) * 2.0);
+      const wallHeight = Math.max(15, (height / correctedDist) * 2.5);
       const topExact = (height - wallHeight) / 2;
       const top = Math.floor(topExact);
       const bottomExact = topExact + wallHeight;
@@ -148,10 +158,11 @@ function createRaycastRenderer(game, world) {
       const baseBrightness = Math.max(30, Math.floor(255 - correctedDist * 30));
       
       // Draw column with graffiti texture
-      const rayX = player.x + Math.cos(rayAngle) * dist;
-      const rayY = player.y + Math.sin(rayAngle) * dist;
+      const rayX = player.x + rayCos[col] * dist;
+      const rayY = player.y + raySin[col] * dist;
       
-      for (let pixelY = top; pixelY < bottom; pixelY++) {
+      const textureStep = 4;
+      for (let pixelY = top; pixelY < bottom; pixelY += textureStep) {
         let textureY = (pixelY - topExact) / wallHeight;
         
         // Clamp to wall bounds
@@ -160,9 +171,11 @@ function createRaycastRenderer(game, world) {
         
         const color = getGraffitiColor(rayX * 2, rayY * 2 + textureY, baseBrightness);
         ctx.fillStyle = color;
-        ctx.fillRect(col, pixelY, 1, 1);
+        ctx.fillRect(col, pixelY, 1, Math.min(textureStep, bottom - pixelY));
       }
     }
+
+    outputCtx.drawImage(renderCanvas, 0, 0, game.canvas.width, game.canvas.height);
   };
 }
 

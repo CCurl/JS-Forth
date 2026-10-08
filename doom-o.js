@@ -1,4 +1,4 @@
-// doom-o.js - Game-specific Doom demo raycaster for JS-Forth
+// doom-o.js - Game-specific Doom-like demo raycaster
 // Uses the generic raycasting engine from ray-engine.js
 // Defines the world layout, keyboard input, and Forth integration
 
@@ -23,6 +23,8 @@ const raycastWorld = [
 ];
 
 // Game state
+const CONTROL_KEYS = new Set(['w', 'a', 's', 'd', 'j', 'k']);
+
 const raycastGame = {
   canvas: null,
   ctx: null,
@@ -34,6 +36,45 @@ const raycastGame = {
   loopFn: null
 };
 
+// Moving around
+const stepSz = 0.075;
+const turnSz = 0.040;
+
+function tryStep(dx, dy) {
+  const newX = raycastGame.player.x + dx;
+  const newY = raycastGame.player.y + dy;
+  if (raycastWorld[Math.floor(newY)] && raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
+    raycastGame.player.x = newX;
+    raycastGame.player.y = newY;
+    return true;
+  }  
+  return false;
+}  
+
+function moveForward() {
+  const angle = raycastGame.player.angle;
+  tryStep(Math.cos(angle) * stepSz, Math.sin(angle) * stepSz);
+}
+
+function moveBackward() {
+  const angle = raycastGame.player.angle;
+  tryStep(-Math.cos(angle) * stepSz, -Math.sin(angle) * stepSz);
+}
+
+function moveLeft() {
+  const angle = raycastGame.player.angle - Math.PI / 2;
+  tryStep(Math.cos(angle) * stepSz, Math.sin(angle) * stepSz);
+}
+
+function moveRight() {
+  const angle = raycastGame.player.angle + Math.PI / 2;
+  tryStep(Math.cos(angle) * stepSz, Math.sin(angle) * stepSz);
+}
+
+function turnLeft()  { raycastGame.player.angle -= turnSz; }
+function turnRight() { raycastGame.player.angle += turnSz; }
+
+// Initialization of the raycasting game
 function raycastInit() {
   raycastGame.canvas = document.getElementById('raycaster-canvas');
   if (!raycastGame.canvas) return;
@@ -56,7 +97,7 @@ function raycastInit() {
     }
     
     // Game input keys
-    if (['w', 'a', 's', 'd', 'j', 'k'].includes(key)) {
+    if (CONTROL_KEYS.has(key)) {
       if (raycastGame.running) {
         if (key === 'w') raycastGame.keys.w = true;
         if (key === 'a') raycastGame.keys.a = true;
@@ -72,7 +113,7 @@ function raycastInit() {
   document.addEventListener('keyup', (e) => {
     const key = e.key.toLowerCase();
     
-    if (['w', 'a', 's', 'd', 'j', 'k'].includes(key)) {
+    if (CONTROL_KEYS.has(key)) {
       if (key === 'w') raycastGame.keys.w = false;
       if (key === 'a') raycastGame.keys.a = false;
       if (key === 's') raycastGame.keys.s = false;
@@ -88,94 +129,42 @@ function raycastInit() {
 
 // Game-specific input handling
 function handleKeyboardInput() {
-  const step = 0.75;
-  const turnStep = 0.1;
-  
   // Movement
-  if (raycastGame.keys.w) {
-    const newX = raycastGame.player.x + Math.cos(raycastGame.player.angle) * step;
-    const newY = raycastGame.player.y + Math.sin(raycastGame.player.angle) * step;
-    if (raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
-      raycastGame.player.x = newX;
-      raycastGame.player.y = newY;
-    }
-  }
-  if (raycastGame.keys.s) {
-    const newX = raycastGame.player.x - Math.cos(raycastGame.player.angle) * step;
-    const newY = raycastGame.player.y - Math.sin(raycastGame.player.angle) * step;
-    if (raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
-      raycastGame.player.x = newX;
-      raycastGame.player.y = newY;
-    }
-  }
-  if (raycastGame.keys.a) {
-    const leftAngle = raycastGame.player.angle - Math.PI / 2;
-    const newX = raycastGame.player.x + Math.cos(leftAngle) * step;
-    const newY = raycastGame.player.y + Math.sin(leftAngle) * step;
-    if (raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
-      raycastGame.player.x = newX;
-      raycastGame.player.y = newY;
-    }
-  }
-  if (raycastGame.keys.d) {
-    const rightAngle = raycastGame.player.angle + Math.PI / 2;
-    const newX = raycastGame.player.x + Math.cos(rightAngle) * step;
-    const newY = raycastGame.player.y + Math.sin(rightAngle) * step;
-    if (raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
-      raycastGame.player.x = newX;
-      raycastGame.player.y = newY;
-    }
-  }
+  if (raycastGame.keys.w) { moveForward(); }
+  if (raycastGame.keys.s) { moveBackward(); }
+  if (raycastGame.keys.a) { moveLeft(); }
+  if (raycastGame.keys.d) { moveRight(); }
   
   // Rotation
-  if (raycastGame.keys.j) {
-    raycastGame.player.angle -= turnStep;
-  }
-  if (raycastGame.keys.k) {
-    raycastGame.player.angle += turnStep;
-  }
+  if (raycastGame.keys.j) { turnLeft(); }
+  if (raycastGame.keys.k) { turnRight(); }
 }
-
 
 
 // Register Forth words for raycaster control
 // These will be called after jsforth.js initializes
 function registerRaycastWords() {
-  definePrim('game-init', () => { raycastInit(); });
-  definePrim('move-fwd', () => {
-    const step = 0.75;
-    const newX = raycastGame.player.x + Math.cos(raycastGame.player.angle) * step;
-    const newY = raycastGame.player.y + Math.sin(raycastGame.player.angle) * step;
-    if (raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
-      raycastGame.player.x = newX;
-      raycastGame.player.y = newY;
-    }
-  });
-  definePrim('move-bck', () => {
-    const step = 0.75;
-    const newX = raycastGame.player.x - Math.cos(raycastGame.player.angle) * step;
-    const newY = raycastGame.player.y - Math.sin(raycastGame.player.angle) * step;
-    if (raycastWorld[Math.floor(newY)][Math.floor(newX)] === 0) {
-      raycastGame.player.x = newX;
-      raycastGame.player.y = newY;
-    }
-  });
-  definePrim('turn-left', () => { raycastGame.player.angle -= 0.2; });
-  definePrim('turn-right', () => { raycastGame.player.angle += 0.2; });
-  definePrim('game-stop', () => { raycastGame.running = false; });
+  definePrim('game-init',  () => { raycastInit(); });
+  definePrim('move-fwd',   () => { moveForward(); });
+  definePrim('move-back',  () => { moveBackward(); });
+  definePrim('move-left',  () => { moveLeft(); });
+  definePrim('move-right', () => { moveRight(); });
+  definePrim('turn-left',  () => { turnLeft(); });
+  definePrim('turn-right', () => { turnRight(); });
+  definePrim('game-stop',  () => { raycastGame.running = false; });
   
   // Add demo block
   blocks[3] = `
-( Keyboard controls: WASD to move, JK to turn, ESC to stop )
-game-init ."  Raycaster started! WASD=move JK=turn ESC=stop" cr
-`;
+  game-init ."  Raycaster started! WASD=move JK=turn ESC=stop" cr
+  `;
   
   // Game words documentation
   blocks[10] = `
 ( Doom-O Game Words )
+( Keyboard controls: WASD to move, JK to turn, ESC to stop )
 ( game-init         -- Initialize and start the raycaster game )
-( move-fwd          -- Move player forward 0.75 units with collision )
-( move-bck          -- Move player backward 0.75 units with collision )
+( move-fwd          -- Move player forward 0.50 units with collision )
+( move-back         -- Move player backward 0.50 units with collision )
 ( turn-left         -- Turn player left by 0.2 radians )
 ( turn-right        -- Turn player right by 0.2 radians )
 ( game-stop         -- Stop the game and return to Forth )
