@@ -10,63 +10,63 @@ tib = '', wd = '', pos = 0, tibLen = 0;
 compiling = false;
 
 function forthInit() {
-  definePrim('+',      () => { t=pop(); setTOS(TOS() + t); });
-  definePrim('-',      () => { t=pop(); setTOS(TOS() - t); });
-  definePrim('*',      () => { t=pop(); setTOS(TOS() * t); });
-  definePrim('/',      () => { t=pop(); setTOS(TOS() / t); });
-  definePrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
-  definePrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
-  definePrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
-  definePrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
-  definePrim('and',    () => { t=pop(); setTOS(TOS() & t); });
-  definePrim('or',     () => { t=pop(); setTOS(TOS() | t); });
-  definePrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
-  definePrim('com',    () => { setTOS(~TOS()); });
-  definePrim('dup',    () => { push(TOS()); });
-  definePrim('drop',   () => { pop(); });
-  definePrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
-  definePrim('over',   () => { n=NOS(); push(n); });
-  definePrim('.s',     () => { doDotS(); });
-  definePrim('@',      () => { setTOS(mem[TOS()]); });
-  definePrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
-  definePrim(',',      () => { Comma(pop()); });
-  definePrim('.',      () => { dot(pop()); });
-  definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
-  definePrim('i',      () => { push(L0()); });
-  definePrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
-  definePrim('emit',   () => { emit(pop()); });
-  definePrim('exit',   () => { exit(); });
-  definePrim('type',   () => { doType(); });
-  definePrim('words',  () => { doWords(); });
-  definePrim('var',    () => { doVar(); });
-  definePrim('const',  () => { doConst(); });
-  definePrim('>t',     () => { tPush(pop()); });
-  definePrim('t@',     () => { push(mem[tsp]); });
-  definePrim('t>',     () => { push(tPop()); });
-  definePrim('a',      () => { push(varA); });
-  definePrim('a!',     () => { varA = pop(); });
-  definePrim('b',      () => { push(varB); });
-  definePrim('b!',     () => { varB = pop(); });
-  definePrim('1+',     () => { ++mem[dsp]; });
-  definePrim('timer',  () => { push(Date.now()); });
-  definePrim('here',   () => { push(here); });
-  definePrim('load',   () => { t=pop(); doLoad(t); });
-  definePrim('list',   () => { t=pop(); listForthBlock(t); });
-  definePrim('see',    () => { doSee(); });
-  definePrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
-  definePrim('immediate', () => { dict[last].immediate = true; });
-  defineImm('s"',      () => { sQuote(); });
-  defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
-  defineImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
-  defineImm('then',    () => { mem[pop()] = here; });
-  defineImm('begin',   () => { push(here); });
-  defineImm('while',   () => { Comma(jmpnz); Comma(pop()); });
-  defineImm('until',   () => { Comma(jmpz);  Comma(pop()); });
-  defineImm('again',   () => { Comma(jmp);   Comma(pop()); });
+  forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
+  forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
+  forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
+  forthPrim('/',      () => { t=pop(); setTOS(TOS() / t); });
+  forthPrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
+  forthPrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
+  forthPrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+  forthPrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
+  forthPrim('and',    () => { t=pop(); setTOS(TOS() & t); });
+  forthPrim('or',     () => { t=pop(); setTOS(TOS() | t); });
+  forthPrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
+  forthPrim('com',    () => { setTOS(~TOS()); });
+  forthPrim('dup',    () => { push(TOS()); });
+  forthPrim('drop',   () => { pop(); });
+  forthPrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+  forthPrim('over',   () => { n=NOS(); push(n); });
+  forthPrim('.s',     () => { doDotS(); });
+  forthPrim('@',      () => { setTOS(mem[TOS()]); });
+  forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
+  forthPrim(',',      () => { Comma(pop()); });
+  forthPrim('.',      () => { dot(pop()); });
+  forthPrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
+  forthPrim('i',      () => { push(L0()); });
+  forthPrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
+  forthPrim('emit',   () => { emit(pop()); });
+  forthPrim('exit',   () => { exit(); });
+  forthPrim('type',   () => { doType(); });
+  forthPrim('words',  () => { doWords(); });
+  forthPrim('var',    () => { doVar(); });
+  forthPrim('const',  () => { doConst(); });
+  forthPrim('>t',     () => { tPush(pop()); });
+  forthPrim('t@',     () => { push(mem[tsp]); });
+  forthPrim('t>',     () => { push(tPop()); });
+  forthPrim('a',      () => { push(varA); });
+  forthPrim('a!',     () => { varA = pop(); });
+  forthPrim('b',      () => { push(varB); });
+  forthPrim('b!',     () => { varB = pop(); });
+  forthPrim('1+',     () => { ++mem[dsp]; });
+  forthPrim('timer',  () => { push(Date.now()); });
+  forthPrim('here',   () => { push(here); });
+  forthPrim('load',   () => { t=pop(); doLoad(t); });
+  forthPrim('list',   () => { t=pop(); listForthBlock(t); });
+  forthPrim('see',    () => { doSee(); });
+  forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
+  forthPrim('immediate', () => { dict[last].immediate = true; });
+  forthImm('s"',      () => { sQuote(); });
+  forthImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
+  forthImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
+  forthImm('then',    () => { mem[pop()] = here; });
+  forthImm('begin',   () => { push(here); });
+  forthImm('while',   () => { Comma(jmpnz); Comma(pop()); });
+  forthImm('until',   () => { Comma(jmpz);  Comma(pop()); });
+  forthImm('again',   () => { Comma(jmp);   Comma(pop()); });
 }  
 
-function definePrim(name, fn) { addWord(name).xt = fn; }
-function defineImm(name, fn)  { addWord(name, true).xt = fn; }
+function forthPrim(name, fn) { addWord(name).xt = fn; }
+function forthImm(name, fn)  { addWord(name, true).xt = fn; }
 function under(s)    { throw new Error(`${s} Stack underflow`); }
 function push(val)   { if (dsp < dse) mem[++dsp] = val; }
 function rPush(val)  { if (rsp < rse) mem[++rsp] = val; }
@@ -259,20 +259,26 @@ function outer(source) {
 
 forthInit();
 
-function runForth(src, logCmd = true) {
-  const input = src ?? '';
-  const output = document.getElementById('forth-output');
-  const lines = [];
+function runForth(src, logCmd = true, logOutput = true) {
   const origLog = console.log;
-  console.log = (...args) => lines.push(args.join(' '));
-  if (logCmd) { console.log(`--> ${input}\n`); }
+  const lines = [];
+  const input = src ?? '';
+  if (logOutput) {
+    console.log = (...args) => lines.push(args.join(' '));
+    if (logCmd) {
+      console.log(`--> ${input}\n`);
+    }
+  }
   try {
     outer(input);
   } catch (e) {
     console.log(`Error: ${e.message}`);
   } finally {
-    output.textContent += lines.join('') + " ok\n";
-    output.scrollTop = output.scrollHeight;
+    if (logOutput) {
+      const output = document.getElementById('forth-output');
+      output.textContent += lines.join('') + " ok\n";
+      output.scrollTop = output.scrollHeight;
+    }
     console.log = origLog;
   }
 }
@@ -312,3 +318,5 @@ blocks[2] = `
 : diameter ( r--n ) dup + ;
 : circumference ( r--n ) 2 pi * * ;
 `;
+
+
