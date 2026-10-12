@@ -14,6 +14,8 @@ function forthInit() {
   forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
   forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
   forthPrim('/',      () => { t=pop(); setTOS(TOS() / t); });
+  forthPrim('/mod',   () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
+  forthPrim('mod/',   () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
   forthPrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
   forthPrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
   forthPrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
@@ -39,6 +41,7 @@ function forthInit() {
   forthPrim('type',   () => { doType(); });
   forthPrim('words',  () => { doWords(); });
   forthPrim('var',    () => { doVar(); });
+  forthPrim('allot',  () => { here += pop(); });
   forthPrim('const',  () => { doConst(); });
   forthPrim('>t',     () => { tPush(pop()); });
   forthPrim('t@',     () => { push(mem[tsp]); });
@@ -101,10 +104,10 @@ function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function errNoWord() { throw new Error(`expected a word`); }
 function checkWord() { x = nextWord(); if (!x) errNoWord(); return x; }
 function doComment() { while (nextWord() && (wd !== ')')) {} }
-function doColon()   { checkWord(); addWord(wd); compiling = true; }
 function doSemi()    { Comma(exit); compiling = false; }
-function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
+function doColon()   { checkWord(); addWord(wd); compiling = true; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
+function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
 
 function addWord(name, immediate = false) {
   dict[++last] = { name, xt: here, immediate };

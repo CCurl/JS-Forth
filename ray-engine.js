@@ -27,63 +27,10 @@ function castRay(world, x, y, angle) {
 }
 
 function getGraffitiColor(x, y, baseBrightness) {
-  // Multiple layers of noise for more interesting texture
-  const hash1 = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-  const noise1 = hash1 - Math.floor(hash1);
-  
-  const hash2 = Math.sin(x * 39.898 + y * 11.233) * 23758.5453;
-  const noise2 = hash2 - Math.floor(hash2);
-  
-  const hash3 = Math.sin(x * 72.4 + y * 51.4) * 65234.123;
-  const noise3 = hash3 - Math.floor(hash3);
-  
-  // Combine multiple noise layers
-  const combined = (noise1 * 0.6 + noise2 * 0.3 + noise3 * 0.1);
-  
-  // Create variation with bigger swings
-  const variation = Math.floor(combined * 120 - 60); // -60 to +60
-  const finalBrightness = Math.max(30, Math.min(255, baseBrightness + variation));
-  
-  // Graffiti color palette
-  let r = finalBrightness;
-  let g = finalBrightness;
-  let b = finalBrightness;
-  
-  const colorNoise = (noise1 + noise2 + noise3) / 3;
-  
-  if (colorNoise < 0.15) {
-    // Bright red
-    r = Math.floor(finalBrightness * 1.4);
-    g = Math.floor(finalBrightness * 0.5);
-    b = Math.floor(finalBrightness * 0.4);
-  } else if (colorNoise < 0.30) {
-    // Bright yellow
-    r = Math.floor(finalBrightness * 1.3);
-    g = Math.floor(finalBrightness * 1.3);
-    b = Math.floor(finalBrightness * 0.3);
-  } else if (colorNoise < 0.45) {
-    // Cyan/bright blue
-    r = Math.floor(finalBrightness * 0.4);
-    g = Math.floor(finalBrightness * 1.2);
-    b = Math.floor(finalBrightness * 1.4);
-  } else if (colorNoise < 0.60) {
-    // Magenta/purple
-    r = Math.floor(finalBrightness * 1.3);
-    g = Math.floor(finalBrightness * 0.3);
-    b = Math.floor(finalBrightness * 1.2);
-  } else if (colorNoise < 0.75) {
-    // Lime green
-    r = Math.floor(finalBrightness * 0.6);
-    g = Math.floor(finalBrightness * 1.4);
-    b = Math.floor(finalBrightness * 0.3);
-  }
-  // else: neutral gray (finalBrightness for all)
-  
-  r = Math.min(255, r);
-  g = Math.min(255, g);
-  b = Math.min(255, b);
-  
-  return `rgb(${r}, ${g}, ${b})`;
+  const noise = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  const variation = (noise - Math.floor(noise)) * 100 - 50;
+  const gray = Math.max(30, Math.min(255, Math.floor(baseBrightness + variation)));
+  return `rgb(${gray}, ${gray}, ${gray})`;
 }
 
 let renderCanvas = undefined;

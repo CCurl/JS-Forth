@@ -31,6 +31,7 @@ const raycastGame = {
   player: { x: 6.5, y: 6.5, angle: 0 },
   lastTime: 0,
   running: false,
+  paused: false,
   keys: { w: false, a: false, s: false, d: false, j: false, k: false },
   renderFn: null,
   loopFn: null
@@ -87,6 +88,13 @@ function raycastInit() {
   
   // Setup keyboard controls
   document.addEventListener('keydown', (e) => {
+    if (raycastGame.paused) { return; }
+    if (!raycastGame.running) {
+      document.removeEventListener('keydown', arguments.callee);
+      document.removeEventListener('keyup', arguments.callee);
+      return;
+    }
+
     const key = e.key.toLowerCase();
     
     // Stop game with ESC
@@ -111,6 +119,7 @@ function raycastInit() {
   });
   
   document.addEventListener('keyup', (e) => {
+    if (!raycastGame.running) { return; }
     const key = e.key.toLowerCase();
     
     if (CONTROL_KEYS.has(key)) {
@@ -129,15 +138,13 @@ function raycastInit() {
 
 // Game-specific input handling
 function handleKeyboardInput() {
-  // Moving
-  if (raycastGame.keys.w) { outer("mF"); }  // Move forward
-  if (raycastGame.keys.s) { outer("mB"); }  // Move backward
-  if (raycastGame.keys.a) { outer("mL"); }  // Move left
-  if (raycastGame.keys.d) { outer("mR"); }  // Move right
-  
-  // Turning
-  if (raycastGame.keys.j) { outer("tL"); }  // Turn left
-  if (raycastGame.keys.k) { outer("tR"); }  // Turn right
+  keys = (raycastGame.keys.w ? 1 : 0)
+    | (raycastGame.keys.a ?  2 : 0)
+    | (raycastGame.keys.s ?  4 : 0)
+    | (raycastGame.keys.d ?  8 : 0)
+    | (raycastGame.keys.j ? 16 : 0)
+    | (raycastGame.keys.k ? 32 : 0);
+  if (keys !== 0) { outer(`${keys} hkey`); }
 }
 
 // Register Forth words for raycaster control
@@ -156,23 +163,29 @@ function registerRaycastWords() {
   // Add demo block
   blocks[3] = `
 : go game-go ."  Running!" 10 list ;
-: w mF ; : wu w game-frame ; : ws for w next game-frame ;
-: a mL ; : au a game-frame ; : as for a next game-frame ;
-: s mB ; : su s game-frame ; : ss for s next game-frame ;
-: d mR ; : du d game-frame ; : ds for d next game-frame ;
-: j tL ; : ju j game-frame ; : js for j next game-frame ;
-: k tR ; : ku k game-frame ; : ks for k next game-frame ;
+: stop game-stop ."  Stopped!" 10 list ;
+: update game-frame ;
+: hkey ( n -- )
+    2 mod/ if mF then ( w )
+    2 mod/ if mL then ( a )
+    2 mod/ if mB then ( s )
+    2 mod/ if mR then ( d )
+    2 mod/ if tL then ( j )
+    1 and  if tR then ( k )
+  ;
 `;
   
   // Game words documentation
   blocks[10] = `( Doom-O Game Words )
 ( Keyboard controls: WASD to move, JK to turn, ESC to stop )
-( game-go   -- Initialize and start the game )
-( mF        -- Move forward )
-( mB        -- Move backward )
-( tL        -- Turn left )
-( tR        -- Turn right )
-( game-stop -- Stop the game and return to Forth )
+( go   -- Initialize and start the game )
+( stop -- Stop the game and return to Forth )
+( mF   -- Move forward )
+( mB   -- Move backward )
+( mL   -- Move left )
+( mR   -- Move right )
+( tL   -- Turn left )
+( tR   -- Turn right )
 `;
 }
 
