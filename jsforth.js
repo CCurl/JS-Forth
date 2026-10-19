@@ -116,13 +116,14 @@ function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]);
 function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } }
 
 function addWord(name, immediate = false) {
-  dict[++last] = { name, xt: here, immediate };
+  dict[++last] = { len: name.length, name, xt: here, immediate };
   return dict[last];
 }  
 
 function findWordIndex(name) {
+  const nameLen = name.length;
   for (let i = last; i >= 0; i--) {
-    if (dict[i].name === name) return i;
+    if ((dict[i].len === nameLen) && (dict[i].name === name)) { return i; }
   }  
   return -1;
 }  
@@ -335,12 +336,15 @@ window.addEventListener('load', async ()=>{              // load event handler
 
 // Blocks - edit them here!
 blocks[0] = `
+block | Description
+  0   | This text
+  1   | Utility / Benchmark
+  2   | Geometry
+`;
+blocks[1] = `
 : >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;
 : >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;
 : >ab >b >a ;   : <ab <a <b ;
-`;
-blocks[1] = `
-0 load
 : k 1000 * ; : mil k k ;
 : lap timer ; : .lap timer swap - . ;
 : bm lap swap for next .lap ;

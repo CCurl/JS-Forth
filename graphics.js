@@ -343,6 +343,7 @@ function createRaycastLoop(renderFn, inputFn, game) {
   return function raycastLoop(time) {
     if (game.running) {
       inputFn();
+      handleGameLogic();
       if (needsRedraw) {
         renderFn();
         needsRedraw = false;

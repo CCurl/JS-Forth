@@ -150,6 +150,10 @@ function handleKeyboardInput() {
   }
 }
 
+function handleGameLogic() {
+  // There is no game logic ... yet
+}
+
 // Register Forth words for raycaster control
 // These will be called after jsforth.js initializes
 function registerRaycastWords() {
@@ -168,8 +172,8 @@ function registerRaycastWords() {
   
   // Add demo block
   blocks[3] = `
-: go game-go redraw ."  Running!" 10 list ;
-: stop game-stop ."  Stopped!" 10 list ;
+: go game-go redraw ."  Running!" 4 list ;
+: stop game-stop ."  Stopped!" ;
 : update game-frame ;
 : hkey ( n -- )
     2 mod/ if mF then ( w )
@@ -180,9 +184,13 @@ function registerRaycastWords() {
     1 and  if tR then ( k )
     redraw ;
 `;
+
+blocks[0] += `  3   | Doom Demo words
+  4   | Doom Demo documentation
+`;
   
   // Game words documentation
-  blocks[10] = `( Doom-O Game Words )
+  blocks[4] = `( Doom-O Game Words )
 ( Keyboard controls: WASD to move, JK to turn, ESC to stop )
 ( game-go      -- Initialize and start the game )
 ( game-stop    -- Stop the game and return to Forth )
