@@ -32,7 +32,8 @@ function forthInit() {
   forthPrim('@',      () => { setTOS(mem[TOS()]); });
   forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
   forthPrim(',',      () => { Comma(pop()); });
-  forthPrim('.',      () => { dot(pop()); });
+  forthPrim('.NWB',   () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
+  forthPrim('.',      () => { doNWB(pop(),0,base); type(' ');});
   forthPrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
   forthPrim('i',      () => { push(L0()); });
   forthPrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
@@ -112,6 +113,7 @@ function doSemi()    { Comma(exit); state = 0; }
 function doColon()   { checkWord(); addWord(wd); state = 1; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
+function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } }
 
 function addWord(name, immediate = false) {
   dict[++last] = { name, xt: here, immediate };
@@ -226,12 +228,37 @@ function nextWord(delim = ' ') {
   return wd.length;
 }
 
-function doNum(token) {
-  let num = Number(token);
-  if (isNaN(num)) { return false; }
-  if (state == 1) { nComma([lit, num]); }
-  else { push(num); }
-  return true;
+function doNum(w) {
+	let n = 0, isNeg = false, b = base;
+	if ((w[0] == '\'') && (w[2] == w[0]) && (w.length == 3)) {
+    doLit(w.charCodeAt(1));
+    return true;
+  }
+	if (w[0] == '%') { b = 2; w = w.slice(1); }
+	if (w[0] == '#') { b = 10; w = w.slice(1); }
+	if (w[0] == '$') { b = 16; w = w.slice(1); }
+	if (b == 10) {
+    const x = Number(w);
+    if (!isNaN(x)) { doLit(x); return true; }
+    if (w[0] == '-') { isNeg = true; w = w.slice(1); }
+  }
+	if (w.length == 0) { return false; }
+	for (let i = 0; i < w.length; i++) {
+		let c = w.charCodeAt(i);
+    if (c >= 65 && c <= 90) { c = c + 32; }
+		let val = ((48 <= c) && (c <= 57)) ? c-48 :
+		          ((97 <= c) && (c <= 102)) ? c-87 : -1;
+		if ((0 <= val) && (val < b)) { n = (n*b) + val; }
+    else { return false; }
+	}
+  doLit(isNeg ? -n : n);
+	return true;
+}
+
+function doNWB(n, w, b) {
+  if (isNaN(n)) { console.log(n); return; }
+  if (!b) { b = base; }
+  console.log(n.toString(b).padStart(w, '0'));
 }
 
 function doWord(token) {
@@ -280,6 +307,7 @@ function runForth(src, logCmd = true, logOutput = true) {
     outer(input);
   } catch (e) {
     console.log(`Error: ${e.message}`);
+    state = 0;
   } finally {
     if (logOutput) {
       const output = document.getElementById('forth-output');
@@ -325,5 +353,3 @@ blocks[2] = `
 : diameter ( r--n ) dup + ;
 : circumference ( r--n ) 2 pi * * ;
 `;
-
-

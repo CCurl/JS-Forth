@@ -28,7 +28,7 @@
       
       <!-- Right: Canvas -->
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <canvas id="raycaster-canvas" width="800" height="400" style="border: 1px solid #666; display: block;"></canvas>
+        <canvas id="the-canvas" width="800" height="400" style="border: 1px solid #666; display: block; image-rendering: pixelated; width: auto; height: auto; align-self: flex-start;"></canvas>
         <!-- Command input -->
         <div>
           <label><b>Command:</b> </label>
@@ -38,7 +38,7 @@
       </div>
     </div>
     <script src="./jsforth.js"></script>
-    <script src="./ray-engine.js"></script>
+    <script src="./graphics.js"></script>
     <script src="./doom-o.js"></script>
     <script type="application/forth">
       : version s" JS-Forth v2026.10.07" ; : cr 10 emit ;
@@ -50,6 +50,13 @@
     <script>
       // Register raycasting Forth words after initialization
       registerRaycastWords();
+      
+      // Initialize graphics and register graphics Forth words
+      let graphicsCanvasElement = document.getElementById('the-canvas');
+      if (graphicsCanvasElement) {
+        initGraphics(graphicsCanvasElement);
+        registerGraphicsWords();
+      }
     </script>
     <script>
       function execSelected() {
