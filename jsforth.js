@@ -7,7 +7,7 @@ tstk = 100, tsp = tstk, tse = 169;   // Temp stack
 lstk = 170, lsp = lstk, lse = 199;   // Loop stack
 here = 200, last = -1, pc = -1, varA = 0, varB = 0;
 tib = '', wd = '', pos = 0, tibLen = 0;
-compiling = false;
+base = 10, state = 0;
 
 function forthInit() {
   forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
@@ -58,8 +58,12 @@ function forthInit() {
   forthPrim('see',    () => { doSee(); });
   forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
   forthPrim('immediate', () => { dict[last].immediate = true; });
+  forthPrim('base@',  () => { push(base); });
+  forthPrim('base!',  () => { base = pop(); });
+  forthPrim('state@', () => { push(state); });
+  forthPrim('state!', () => { state = pop(); });
   forthImm('s"',      () => { sQuote(); });
-  forthImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
+  forthImm('."',      () => { sQuote(); if (state == 1) { Comma(doType); } else { doType(); } });
   forthImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
   forthImm('then',    () => { mem[pop()] = here; });
   forthImm('begin',   () => { push(here); });
@@ -104,8 +108,8 @@ function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function errNoWord() { throw new Error(`expected a word`); }
 function checkWord() { x = nextWord(); if (!x) errNoWord(); return x; }
 function doComment() { while (nextWord() && (wd !== ')')) {} }
-function doSemi()    { Comma(exit); compiling = false; }
-function doColon()   { checkWord(); addWord(wd); compiling = true; }
+function doSemi()    { Comma(exit); state = 0; }
+function doColon()   { checkWord(); addWord(wd); state = 1; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
 
@@ -137,7 +141,7 @@ function sQuote() {
   ++pos; // skip the initial space
   nextWord('"');
   push(new String(wd));
-  if (compiling) { nComma([lit, pop()]); }
+  if (state == 1) { nComma([lit, pop()]); }
 }
 
 function doWords() {
@@ -223,9 +227,9 @@ function nextWord(delim = ' ') {
 }
 
 function doNum(token) {
-  const num = Number(token);
+  let num = Number(token);
   if (isNaN(num)) { return false; }
-  if (compiling) { nComma([lit, num]); }
+  if (state == 1) { nComma([lit, num]); }
   else { push(num); }
   return true;
 }
@@ -233,7 +237,7 @@ function doNum(token) {
 function doWord(token) {
   const entry = findWord(token);
   if (!entry) { return false; }
-  if (entry.immediate || !compiling) {
+  if (entry.immediate || (state == 0)) {
     const x = here+100;
     mem[x] = entry.xt;
     mem[x+1] = undefined;
