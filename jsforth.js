@@ -14,6 +14,7 @@ function forthInit() {
   forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
   forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
   forthPrim('/',      () => { t=pop(); setTOS(TOS() / t); });
+  forthPrim('negate', () => { setTOS(-TOS()); });
   forthPrim('/mod',   () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
   forthPrim('mod/',   () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
   forthPrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
@@ -57,6 +58,8 @@ function forthInit() {
   forthPrim('load',   () => { t=pop(); doLoad(t); });
   forthPrim('list',   () => { t=pop(); listForthBlock(t); });
   forthPrim('see',    () => { doSee(); });
+  forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
+  forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
   forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
   forthPrim('immediate', () => { dict[last].immediate = true; });
   forthPrim('base@',  () => { push(base); });
@@ -352,6 +355,7 @@ blocks[1] = `
 `;
 blocks[2] = `
 355 113 / const pi
+: deg>rad ( deg -- rad ) 3.14159265 * 180 / ;
 : squared ( n-- n1 ) dup * ;
 : area ( r--n ) squared pi * ;
 : diameter ( r--n ) dup + ;

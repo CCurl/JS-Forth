@@ -202,11 +202,48 @@ function popString() {
 }
 
 // *********************************************************************************
-// ray-casting support - a generic Doom-style raycasting engine
-// Provides core raycasting, rendering, and animation loop
-// Does not depend on any specific game world or Forth integration
+// Turtle graphics support
+blocks[0] += `  5   | Turtle graphics support`;
+blocks[6] = `( Turtle graphics support )
+var turtle-x
+var turtle-y
+var turtle-angle
+var pen-state
 
-function castRay(world, x, y, angle) {
+: pen-up ( -- ) 0 pen-state ! ;
+: pen-down ( -- ) -1 pen-state ! ;
+: pen-down? ( -- n ) pen-state @ ;
+: turtle-move ( x y -- ) turtle-y ! turtle-x ! ;
+
+: turtle-home
+  pen-up 200 200 turtle-move
+  0 turtle-angle ! ;
+
+: turtle-goto ( x y -- )
+  pen-down? if begin-path turtle-x @ turtle-y @ move-to then
+  turtle-y ! turtle-x !
+  pen-down? if turtle-x @ turtle-y @ line-to stroke-path then
+;
+
+: turtle-fw ( distance -- )
+    >b turtle-angle @ deg>rad >a
+    b a sin * turtle-x @ +
+    b a cos * turtle-y @ + 
+    turtle-goto <a ;
+  
+: turtle-rt ( angle -- ) turtle-angle @ + turtle-angle ! ;
+: turtle-lt ( angle -- ) negate turtle-rt ;
+: square ( size -- ) pen-down? >t
+    pen-down 4 for dup turtle-fw 90 turtle-rt next drop t> pen-state ! ;
+turtle-home
+`;
+ 
+ // *********************************************************************************
+ // ray-casting support - a generic Doom-style raycasting engine
+ // Provides core raycasting, rendering, and animation loop
+ // Does not depend on any specific game world or Forth integration
+ 
+ function castRay(world, x, y, angle) {
   const dx = Math.cos(angle);
   const dy = Math.sin(angle);
   const maxDist = 20;
