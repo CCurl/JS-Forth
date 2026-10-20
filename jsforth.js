@@ -121,7 +121,7 @@ function doSemi()    { Comma(exit); state = 0; }
 function doColon()   { checkWord(); addWord(wd); state = 1; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
-function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } }
+function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } return true; }
 
 function addWord(name, immediate = false) {
   dict[++last] = { len: name.length, name, xt: here, immediate };
@@ -238,30 +238,10 @@ function nextWord(delim = ' ') {
 }
 
 function doNum(w) {
-	let n = 0, isNeg = false, b = base;
-	if ((w[0] == '\'') && (w[2] == w[0]) && (w.length == 3)) {
-    doLit(w.charCodeAt(1));
-    return true;
-  }
-	if (w[0] == '%') { b = 2; w = w.slice(1); }
-	if (w[0] == '#') { b = 10; w = w.slice(1); }
-	if (w[0] == '$') { b = 16; w = w.slice(1); }
-	if (b == 10) {
-    const x = Number(w);
-    if (!isNaN(x)) { doLit(x); return true; }
-    if (w[0] == '-') { isNeg = true; w = w.slice(1); }
-  }
-	if (w.length == 0) { return false; }
-	for (let i = 0; i < w.length; i++) {
-		let c = w.charCodeAt(i);
-    if (c >= 65 && c <= 90) { c = c + 32; }
-		let val = ((48 <= c) && (c <= 57)) ? c-48 :
-		          ((97 <= c) && (c <= 102)) ? c-87 : -1;
-		if ((0 <= val) && (val < b)) { n = (n*b) + val; }
-    else { return false; }
-	}
-  doLit(isNeg ? -n : n);
-	return true;
+  // Supports 0x<Hex> or 0b<Binary> notation
+  const x = Number(w);
+  if (!isNaN(x)) { return doLit(x); }
+  return false;
 }
 
 function doNWB(n, w, b) {

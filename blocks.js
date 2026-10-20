@@ -1,13 +1,13 @@
 // Blocks - edit them here!
-blocks[0] = `
-block | Description
-  0   | This text
-  1   | Utility / Benchmark
-  2   | Geometry
- 10   | Turtle graphics support
- 11   | Turtle graphics documentation
- 20   | Doom Demo words
- 21   | Doom Demo documentation
+blocks[0] = `block | Description
+------|---------------------------
+   0  | This text
+   1  | Utility / Benchmark
+   2  | Geometry
+  10  | Turtle graphics support
+  11  | Turtle graphics documentation
+  20  | Doom Demo words
+  21  | Doom Demo documentation
 `;
 
 blocks[1] = `( Utility and benchmark words )
