@@ -7,66 +7,82 @@ tstk = 100, tsp = tstk, tse = 169;   // Temp stack
 lstk = 170, lsp = lstk, lse = 199;   // Loop stack
 here = 200, last = -1, pc = -1, varA = 0, varB = 0;
 tib = '', wd = '', pos = 0, tibLen = 0;
-compiling = false;
+base = 10, state = 0;
 
 function forthInit() {
-  definePrim('+',      () => { t=pop(); setTOS(TOS() + t); });
-  definePrim('-',      () => { t=pop(); setTOS(TOS() - t); });
-  definePrim('*',      () => { t=pop(); setTOS(TOS() * t); });
-  definePrim('/',      () => { t=pop(); setTOS(TOS() / t); });
-  definePrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
-  definePrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
-  definePrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
-  definePrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
-  definePrim('and',    () => { t=pop(); setTOS(TOS() & t); });
-  definePrim('or',     () => { t=pop(); setTOS(TOS() | t); });
-  definePrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
-  definePrim('com',    () => { setTOS(~TOS()); });
-  definePrim('dup',    () => { push(TOS()); });
-  definePrim('drop',   () => { pop(); });
-  definePrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
-  definePrim('over',   () => { n=NOS(); push(n); });
-  definePrim('.s',     () => { doDotS(); });
-  definePrim('@',      () => { setTOS(mem[TOS()]); });
-  definePrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
-  definePrim(',',      () => { Comma(pop()); });
-  definePrim('.',      () => { dot(pop()); });
-  definePrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
-  definePrim('i',      () => { push(L0()); });
-  definePrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
-  definePrim('emit',   () => { emit(pop()); });
-  definePrim('exit',   () => { exit(); });
-  definePrim('type',   () => { doType(); });
-  definePrim('words',  () => { doWords(); });
-  definePrim('var',    () => { doVar(); });
-  definePrim('const',  () => { doConst(); });
-  definePrim('>t',     () => { tPush(pop()); });
-  definePrim('t@',     () => { push(mem[tsp]); });
-  definePrim('t>',     () => { push(tPop()); });
-  definePrim('a',      () => { push(varA); });
-  definePrim('a!',     () => { varA = pop(); });
-  definePrim('b',      () => { push(varB); });
-  definePrim('b!',     () => { varB = pop(); });
-  definePrim('1+',     () => { ++mem[dsp]; });
-  definePrim('timer',  () => { push(Date.now()); });
-  definePrim('here',   () => { push(here); });
-  definePrim('load',   () => { t=pop(); doLoad(t); });
-  definePrim('list',   () => { t=pop(); listForthBlock(t); });
-  definePrim('see',    () => { doSee(); });
-  definePrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
-  definePrim('immediate', () => { dict[last].immediate = true; });
-  defineImm('s"',      () => { sQuote(); });
-  defineImm('."',      () => { sQuote(); if (compiling) { Comma(doType); } else { doType(); } });
-  defineImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
-  defineImm('then',    () => { mem[pop()] = here; });
-  defineImm('begin',   () => { push(here); });
-  defineImm('while',   () => { Comma(jmpnz); Comma(pop()); });
-  defineImm('until',   () => { Comma(jmpz);  Comma(pop()); });
-  defineImm('again',   () => { Comma(jmp);   Comma(pop()); });
+  forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
+  forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
+  forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
+  forthPrim('/',      () => { t=pop(); setTOS(TOS() / t); });
+  forthPrim('negate', () => { setTOS(-TOS()); });
+  forthPrim('/mod',   () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
+  forthPrim('mod/',   () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
+  forthPrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
+  forthPrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
+  forthPrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+  forthPrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
+  forthPrim('and',    () => { t=pop(); setTOS(TOS() & t); });
+  forthPrim('or',     () => { t=pop(); setTOS(TOS() | t); });
+  forthPrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
+  forthPrim('com',    () => { setTOS(~TOS()); });
+  forthPrim('dup',    () => { push(TOS()); });
+  forthPrim('drop',   () => { pop(); });
+  forthPrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+  forthPrim('over',   () => { n=NOS(); push(n); });
+  forthPrim('.s',     () => { doDotS(); });
+  forthPrim('@',      () => { setTOS(mem[TOS()]); });
+  forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
+  forthPrim(',',      () => { Comma(pop()); });
+  forthPrim('.NWB',   () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
+  forthPrim('.',      () => { doNWB(pop(),0,base); type(' ');});
+  forthPrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
+  forthPrim('i',      () => { push(L0()); });
+  forthPrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
+  forthPrim('emit',   () => { emit(pop()); });
+  forthPrim('exit',   () => { exit(); });
+  forthPrim('type',   () => { doType(); });
+  forthPrim('words',  () => { doWords(); });
+  forthPrim('var',    () => { doVar(); });
+  forthPrim('allot',  () => { here += pop(); });
+  forthPrim('const',  () => { doConst(); });
+  forthPrim('>t',     () => { tPush(pop()); });
+  forthPrim('t@',     () => { push(mem[tsp]); });
+  forthPrim('t>',     () => { push(tPop()); });
+  forthPrim('<t',     () => { tPop(); });
+  forthPrim('a@',     () => { push(varA); });
+  forthPrim('a!',     () => { varA = pop(); });
+  forthPrim('>a',     () => { tPush(varA); varA = pop(); });
+  forthPrim('<a',     () => { varA = tPop(); });
+  forthPrim('b@',     () => { push(varB); });
+  forthPrim('b!',     () => { varB = pop(); });
+  forthPrim('>b',     () => { tPush(varB); varB = pop(); });
+  forthPrim('<b',     () => { varB = tPop(); });
+  forthPrim('1+',     () => { ++mem[dsp]; });
+  forthPrim('timer',  () => { push(Date.now()); });
+  forthPrim('here',   () => { push(here); });
+  forthPrim('load',   () => { t=pop(); doLoad(t); });
+  forthPrim('list',   () => { t=pop(); listForthBlock(t); });
+  forthPrim('see',    () => { doSee(); });
+  forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
+  forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
+  forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
+  forthPrim('immediate', () => { dict[last].immediate = true; });
+  forthPrim('base@',  () => { push(base); });
+  forthPrim('base!',  () => { base = pop(); });
+  forthPrim('state@', () => { push(state); });
+  forthPrim('state!', () => { state = pop(); });
+  forthImm('s"',      () => { sQuote(); });
+  forthImm('."',      () => { sQuote(); if (state == 1) { Comma(doType); } else { doType(); } });
+  forthImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
+  forthImm('then',    () => { mem[pop()] = here; });
+  forthImm('begin',   () => { push(here); });
+  forthImm('while',   () => { Comma(jmpnz); Comma(pop()); });
+  forthImm('until',   () => { Comma(jmpz);  Comma(pop()); });
+  forthImm('again',   () => { Comma(jmp);   Comma(pop()); });
 }  
 
-function definePrim(name, fn) { addWord(name).xt = fn; }
-function defineImm(name, fn)  { addWord(name, true).xt = fn; }
+function forthPrim(name, fn) { addWord(name).xt = fn; }
+function forthImm(name, fn)  { addWord(name, true).xt = fn; }
 function under(s)    { throw new Error(`${s} Stack underflow`); }
 function push(val)   { if (dsp < dse) mem[++dsp] = val; }
 function rPush(val)  { if (rsp < rse) mem[++rsp] = val; }
@@ -101,19 +117,21 @@ function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function errNoWord() { throw new Error(`expected a word`); }
 function checkWord() { x = nextWord(); if (!x) errNoWord(); return x; }
 function doComment() { while (nextWord() && (wd !== ')')) {} }
-function doColon()   { checkWord(); addWord(wd); compiling = true; }
-function doSemi()    { Comma(exit); compiling = false; }
-function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
+function doSemi()    { Comma(exit); state = 0; }
+function doColon()   { checkWord(); addWord(wd); state = 1; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
+function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
+function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } }
 
 function addWord(name, immediate = false) {
-  dict[++last] = { name, xt: here, immediate };
+  dict[++last] = { len: name.length, name, xt: here, immediate };
   return dict[last];
 }  
 
 function findWordIndex(name) {
+  const nameLen = name.length;
   for (let i = last; i >= 0; i--) {
-    if (dict[i].name === name) return i;
+    if ((dict[i].len === nameLen) && (dict[i].name === name)) { return i; }
   }  
   return -1;
 }  
@@ -134,7 +152,7 @@ function sQuote() {
   ++pos; // skip the initial space
   nextWord('"');
   push(new String(wd));
-  if (compiling) { nComma([lit, pop()]); }
+  if (state == 1) { nComma([lit, pop()]); }
 }
 
 function doWords() {
@@ -219,18 +237,43 @@ function nextWord(delim = ' ') {
   return wd.length;
 }
 
-function doNum(token) {
-  const num = Number(token);
-  if (isNaN(num)) { return false; }
-  if (compiling) { nComma([lit, num]); }
-  else { push(num); }
-  return true;
+function doNum(w) {
+	let n = 0, isNeg = false, b = base;
+	if ((w[0] == '\'') && (w[2] == w[0]) && (w.length == 3)) {
+    doLit(w.charCodeAt(1));
+    return true;
+  }
+	if (w[0] == '%') { b = 2; w = w.slice(1); }
+	if (w[0] == '#') { b = 10; w = w.slice(1); }
+	if (w[0] == '$') { b = 16; w = w.slice(1); }
+	if (b == 10) {
+    const x = Number(w);
+    if (!isNaN(x)) { doLit(x); return true; }
+    if (w[0] == '-') { isNeg = true; w = w.slice(1); }
+  }
+	if (w.length == 0) { return false; }
+	for (let i = 0; i < w.length; i++) {
+		let c = w.charCodeAt(i);
+    if (c >= 65 && c <= 90) { c = c + 32; }
+		let val = ((48 <= c) && (c <= 57)) ? c-48 :
+		          ((97 <= c) && (c <= 102)) ? c-87 : -1;
+		if ((0 <= val) && (val < b)) { n = (n*b) + val; }
+    else { return false; }
+	}
+  doLit(isNeg ? -n : n);
+	return true;
+}
+
+function doNWB(n, w, b) {
+  if (isNaN(n)) { console.log(n); return; }
+  if (!b) { b = base; }
+  console.log(n.toString(b).padStart(w, '0'));
 }
 
 function doWord(token) {
   const entry = findWord(token);
   if (!entry) { return false; }
-  if (entry.immediate || !compiling) {
+  if (entry.immediate || (state == 0)) {
     const x = here+100;
     mem[x] = entry.xt;
     mem[x+1] = undefined;
@@ -259,20 +302,27 @@ function outer(source) {
 
 forthInit();
 
-function runForth(src, logCmd = true) {
-  const input = src ?? '';
-  const output = document.getElementById('forth-output');
-  const lines = [];
+function runForth(src, logCmd = true, logOutput = true) {
   const origLog = console.log;
-  console.log = (...args) => lines.push(args.join(' '));
-  if (logCmd) { console.log(`--> ${input}\n`); }
+  const lines = [];
+  const input = src ?? '';
+  if (logOutput) {
+    console.log = (...args) => lines.push(args.join(' '));
+    if (logCmd) {
+      console.log(`--> ${input}\n`);
+    }
+  }
   try {
     outer(input);
   } catch (e) {
     console.log(`Error: ${e.message}`);
+    state = 0;
   } finally {
-    output.textContent += lines.join('') + " ok\n";
-    output.scrollTop = output.scrollHeight;
+    if (logOutput) {
+      const output = document.getElementById('forth-output');
+      output.textContent += lines.join('') + " ok\n";
+      output.scrollTop = output.scrollHeight;
+    }
     console.log = origLog;
   }
 }
@@ -291,24 +341,3 @@ window.addEventListener('load', async ()=>{              // load event handler
         else { runForth(s.innerText, false); }
     }
 });
-
-// Blocks - edit them here!
-blocks[0] = `
-: >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;
-: >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;
-: >ab >b >a ;   : <ab <a <b ;
-`;
-blocks[1] = `
-0 load
-: k 1000 * ; : mil k k ;
-: lap timer ; : .lap timer swap - . ;
-: bm lap swap for next .lap ;
-: dump swap >a for a . ." - " @a+ . cr next <a ;
-`;
-blocks[2] = `
-355 113 / const pi
-: squared ( n-- n1 ) dup * ;
-: area ( r--n ) squared pi * ;
-: diameter ( r--n ) dup + ;
-: circumference ( r--n ) 2 pi * * ;
-`;

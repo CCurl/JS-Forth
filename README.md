@@ -89,6 +89,64 @@ In your HTML, add corresponding `id` attributes:
 
 The Forth code then updates these elements when executed.
 
+### Canvas Graphics Words
+
+`graphics.js` registers these words after `initGraphics(canvas)` and
+`registerGraphicsWords()` are called. Coordinates are canvas pixels, with the
+origin at the top-left and Y increasing downward. RGB arguments are supplied
+in red, green, blue order.
+
+- `canvas-width`, `canvas-height` - Push the canvas dimensions: `( -- n )`.
+- `canvas-width!`, `canvas-height!` - Set a dimension: `( n -- )`.
+- `resize-canvas` - Set width and height: `( width height -- )`.
+- `clear` - Clear the canvas.
+- `color` - Set fill color: `( r g b -- )`.
+- `stroke` - Set line/stroke color: `( r g b -- )`.
+- `fill-alpha` - Set global alpha from 0 to 255: `( alpha -- )`.
+- `line-width` - Set stroke width: `( pixels -- )`.
+- `rect`, `rect-stroke` - Fill or outline a rectangle: `( x y width height -- )`.
+- `circle`, `circle-stroke` - Fill or outline a circle: `( x y radius -- )`.
+- `pi` - Push the value of pi: `( -- pi )`.
+- `move-to`, `line-to` - Set the current path point or add a line: `( x y -- )`.
+- `begin-path`, `stroke-path`, `fill-path`, `close-path` - Begin, draw, fill, or close the current path.
+- `pixel` - Draw one pixel: `( x y -- )`.
+- `save-state`, `restore-state` - Save or restore the canvas drawing state.
+- `translate` - Translate the canvas: `( x y -- )`.
+- `rotate` - Rotate in radians: `( angle -- )`.
+- `scale` - Scale the canvas: `( scale-x scale-y -- )`.
+- `font` - Set the canvas font from a zero-terminated Forth string address: `( string-address -- )`.
+- `text`, `text-stroke` - Fill or outline text at a position: `( string-address x y -- )`.
+- `image-data` - Copy a canvas rectangle to the temporary stack: `( x y width height -- )`.
+- `put-image-data` - Put the saved image data at a position: `( x y -- )`.
+- `load-sprite` - Load an image from a zero-terminated URL string and push its sprite index: `( url-address -- index )`.
+- `draw-sprite` - Draw a loaded sprite at native size: `( x y index -- )`.
+- `draw-sprite-scaled` - Draw a loaded sprite at a specified size: `( x y index width height -- )`.
+- `sprite-width`, `sprite-height` - Push a sprite's loaded dimension: `( index -- pixels )`.
+- `redraw` - Request a redraw; `redraw?` pushes true (`-1`) when one is pending.
+
+### Turtle Graphics
+
+The optional graphics words in `blocks.js` provide a simple turtle for drawing
+on the canvas. `ttl-home` moves it to the canvas center, lifts the pen, and
+resets its heading. Heading `0` points up; `90` points right, and positive
+angles turn clockwise. Canvas coordinates start at the top-left, with Y
+increasing downward.
+
+- `ttl-fw` - Move forward by a distance, drawing when the pen is down.
+- `ttl-rt` / `ttl-lt` - Turn right / left by an angle in degrees.
+- `pen-up` / `pen-down` - Lift or lower the pen.
+- `pen-color` - Set the pen (stroke) color: `( r g b -- )`.
+- `ttl-goto` - Move to X/Y, drawing if the pen is down: `( x y -- )`.
+- `square` - Draw a square of the given side length: `( size -- )`.
+- `ttl-home` - Return to the canvas center and reset heading: `( -- )`.
+
+For example, load the turtle support block and draw a square from the center:
+
+```forth
+10 load
+ttl-home 80 square
+```
+
 ### Embedded Forth Scripts
 
 Embed Forth code directly in HTML using `type="application/forth"`:
@@ -188,8 +246,8 @@ Stack effects below use `--` to separate inputs from outputs. True comparison re
 - `inner(start)` - Execute compiled code starting at address
 - `outer(source)` - Parse and execute/compile source string
 - `define(name, immediate)` - Add entry to dictionary
-- `definePrim(name, fn)` - Add a primitive to dictionary
-- `defineImm(name, fn)` - Add an IMMEDIATE primitive to dictionary
+- `forthPrim(name, fn)` - Add a primitive to dictionary
+- `forthImm(name, fn)` - Add an IMMEDIATE primitive to dictionary
 - `nextWord(delim)` - Extract next token from input buffer
 - `doNum(token)` - Parse and handle numeric literal
 - `doWord(token)` - Look up and execute/compile word
