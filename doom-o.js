@@ -154,60 +154,15 @@ function handleGameLogic() {
   // There is no game logic ... yet
 }
 
-// Register Forth words for raycaster control
-// These will be called after jsforth.js initializes
-function registerRaycastWords() {
-  forthPrim('game-go',    () => { raycastInit(); });
-  forthPrim('game-stop',  () => { theGame.running = false; });
-  forthPrim('game-pause', () => { theGame.paused = true; });
-  forthPrim('game-resume',() => { theGame.paused = false; });
-  forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
-  forthPrim('game-frame', () => { renderRaycastFrame(); });
-  forthPrim('mF', () => { moveForward(); });
-  forthPrim('mB', () => { moveBackward(); });
-  forthPrim('mL', () => { moveLeft(); });
-  forthPrim('mR', () => { moveRight(); });
-  forthPrim('tL', () => { turnLeft(); });
-  forthPrim('tR', () => { turnRight(); });
-  
-  // Add demo block
-  blocks[3] = `
-: go game-go redraw ."  Running!" 4 list ;
-: stop game-stop ."  Stopped!" ;
-: update game-frame ;
-: hkey ( n -- )
-    2 mod/ if mF then ( w )
-    2 mod/ if mL then ( a )
-    2 mod/ if mB then ( s )
-    2 mod/ if mR then ( d )
-    2 mod/ if tL then ( j )
-    1 and  if tR then ( k )
-    redraw ;
-`;
-
-blocks[0] += `  3   | Doom Demo words
-  4   | Doom Demo documentation
-`;
-  
-  // Game words documentation
-  blocks[4] = `( Doom-O Game Words )
-( Keyboard controls: WASD to move, JK to turn, ESC to stop )
-( game-go      -- Initialize and start the game )
-( game-stop    -- Stop the game and return to Forth )
-( game-pause   -- Pause the game (ignore input) )
-( game-resume  -- Resume from pause )
-( game-paused? -- Check if game is paused )
-( mF           -- Move forward )
-( mB           -- Move backward )
-( mL           -- Move left )
-( mR           -- Move right )
-( tL           -- Turn left )
-( tR           -- Turn right )
-`;
-}
-
-// Auto-register when Forth is ready
-if (typeof forthInit !== 'undefined') {
-  // Forth is already loaded, register now
-  registerRaycastWords();
-}
+forthPrim('game-go',    () => { raycastInit(); });
+forthPrim('game-stop',  () => { theGame.running = false; });
+forthPrim('game-pause', () => { theGame.paused = true; });
+forthPrim('game-resume',() => { theGame.paused = false; });
+forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
+forthPrim('game-frame', () => { renderRaycastFrame(); });
+forthPrim('mF', () => { moveForward(); });
+forthPrim('mB', () => { moveBackward(); });
+forthPrim('mL', () => { moveLeft(); });
+forthPrim('mR', () => { moveRight(); });
+forthPrim('tL', () => { turnLeft(); });
+forthPrim('tR', () => { turnRight(); });

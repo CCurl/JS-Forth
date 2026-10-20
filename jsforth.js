@@ -48,10 +48,15 @@ function forthInit() {
   forthPrim('>t',     () => { tPush(pop()); });
   forthPrim('t@',     () => { push(mem[tsp]); });
   forthPrim('t>',     () => { push(tPop()); });
-  forthPrim('a',      () => { push(varA); });
+  forthPrim('<t',     () => { tPop(); });
+  forthPrim('a@',     () => { push(varA); });
   forthPrim('a!',     () => { varA = pop(); });
-  forthPrim('b',      () => { push(varB); });
+  forthPrim('>a',     () => { tPush(varA); varA = pop(); });
+  forthPrim('<a',     () => { varA = tPop(); });
+  forthPrim('b@',     () => { push(varB); });
   forthPrim('b!',     () => { varB = pop(); });
+  forthPrim('>b',     () => { tPush(varB); varB = pop(); });
+  forthPrim('<b',     () => { varB = tPop(); });
   forthPrim('1+',     () => { ++mem[dsp]; });
   forthPrim('timer',  () => { push(Date.now()); });
   forthPrim('here',   () => { push(here); });
@@ -336,28 +341,3 @@ window.addEventListener('load', async ()=>{              // load event handler
         else { runForth(s.innerText, false); }
     }
 });
-
-// Blocks - edit them here!
-blocks[0] = `
-block | Description
-  0   | This text
-  1   | Utility / Benchmark
-  2   | Geometry
-`;
-blocks[1] = `
-: >a a >t a! ;  : @a a @ ;  : @a+ a dup 1+ a! @ ; : <a t> a! ;
-: >b b >t b! ;  : @b b @ ;  : @b+ b dup 1+ b! @ ; : <b t> b! ;
-: >ab >b >a ;   : <ab <a <b ;
-: k 1000 * ; : mil k k ;
-: lap timer ; : .lap timer swap - . ;
-: bm lap swap for next .lap ;
-: dump swap >a for a . ." - " @a+ . cr next <a ;
-`;
-blocks[2] = `
-355 113 / const pi
-: deg>rad ( deg -- rad ) 3.14159265 * 180 / ;
-: squared ( n-- n1 ) dup * ;
-: area ( r--n ) squared pi * ;
-: diameter ( r--n ) dup + ;
-: circumference ( r--n ) 2 pi * * ;
-`;

@@ -40,12 +40,13 @@
     <script src="./jsforth.js"></script>
     <script src="./graphics.js"></script>
     <script src="./doom-o.js"></script>
+    <script src="./blocks.js"></script>
     <script type="application/forth">
-      : version s" JS-Forth v2026.10.07" ; : cr 10 emit ;
+      : version s" JS-Forth v2026.10.19" ; : cr 10 emit ;
       version s" hdr" html!
       ( s" words" s" forth-hist" html! )
       : banner version type ."  - Chris Curl" cr cr ." Hello." cr ;
-      banner cr words  0 list
+      banner cr  1 load  0 list
     </script>
     <script>
       // Initialize graphics and register graphics Forth words
