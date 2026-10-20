@@ -50,9 +50,9 @@
     </script>
     <script>
       // Initialize graphics and register graphics Forth words
-      let graphicsCanvasElement = document.getElementById('the-canvas');
-      if (graphicsCanvasElement) {
-        initGraphics(graphicsCanvasElement);
+      let theCanvasElement = document.getElementById('the-canvas');
+      if (theCanvasElement) {
+        initGraphics(theCanvasElement);
         registerGraphicsWords();
       }
     </script>
@@ -72,28 +72,11 @@
     </script>
   </body>
   <style>
-    body {
-      font-family: monospace;
-    }
-
-    h2 {
-      text-align: left;
-      margin: 0;
-    }
-
-    pre {
-      display: inline;
-      margin: 0;
-    }
-
-    #forth-input {
-      height: 1.8em;
-      padding: 4px;
-    }
-
-    label {
-      font-size: 1.5em;
-    }
+    body { font-family: monospace; }
+    h2 { text-align: left; margin: 0; }
+    pre { display: inline; margin: 0; }
+    label { font-size: 1.5em; }
+    #forth-input { height: 1.8em; padding: 4px; }
 
     @media (prefers-color-scheme: dark) {
       body {

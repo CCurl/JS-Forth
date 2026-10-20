@@ -2,141 +2,122 @@
 // graphics.js - Canvas graphics wrapper for Forth
 // Provides Forth words for drawing on the HTML canvas
 
-let graphicsCanvas = null;
-let graphicsCtx = null;
+let theCanvas = null;
+let theCtx = null;
 let sprites = [];  // Sprite storage: index -> Image object
 
 function initGraphics(canvas) {
-  graphicsCanvas = canvas;
-  graphicsCtx = canvas.getContext('2d');
+  theCanvas = canvas;
+  theCtx = canvas.getContext('2d');
 }
 
 function registerGraphicsWords() {
-  // Get canvas dimensions
-  forthPrim('canvas-width', () => { push(graphicsCanvas.width); });
-  forthPrim('canvas-height', () => { push(graphicsCanvas.height); });
+  forthPrim('canvas-width', () => { push(theCanvas.width); });
+  forthPrim('canvas-height', () => { push(theCanvas.height); });
   
-  // Set canvas dimensions
-  forthPrim('canvas-width!', () => { 
-    graphicsCanvas.width = pop(); 
-  });
-  forthPrim('canvas-height!', () => { 
-    graphicsCanvas.height = pop(); 
-  });
-  forthPrim('resize-canvas', () => { 
-    let h = pop(), w = pop(); 
-    graphicsCanvas.width = w;
-    graphicsCanvas.height = h;
+  forthPrim('canvas-width!',  () => { theCanvas.width = pop(); });
+  forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
+  forthPrim('resize-canvas',  () => { 
+    theCanvas.width = pop();
+    theCanvas.height = pop();
   });
   
-  // Clearing
-  forthPrim('clear', () => { 
-    graphicsCtx.clearRect(0, 0, graphicsCanvas.width, graphicsCanvas.height); 
-  });
-  
-  // Color and style
+  forthPrim('clear', () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
   forthPrim('color', () => { 
     let b=pop(), g=pop(), r=pop(); 
-    graphicsCtx.fillStyle = `rgb(${r},${g},${b})`;
+    theCtx.fillStyle = `rgb(${r},${g},${b})`;
   });
   forthPrim('stroke', () => { 
     let b=pop(), g=pop(), r=pop(); 
-    graphicsCtx.strokeStyle = `rgb(${r},${g},${b})`;
+    theCtx.strokeStyle = `rgb(${r},${g},${b})`;
   });
-  forthPrim('fill-alpha', () => { graphicsCtx.globalAlpha = pop() / 255; });
-  forthPrim('line-width', () => { graphicsCtx.lineWidth = pop(); });
+  forthPrim('fill-alpha', () => { theCtx.globalAlpha = pop() / 255; });
+  forthPrim('line-width', () => { theCtx.lineWidth = pop(); });
   
-  // Basic shapes
   forthPrim('rect', () => { 
     let h=pop(), w=pop(), y=pop(), x=pop(); 
-    graphicsCtx.fillRect(x, y, w, h); 
+    theCtx.fillRect(x, y, w, h); 
   });
   forthPrim('rect-stroke', () => { 
     let h=pop(), w=pop(), y=pop(), x=pop(); 
-    graphicsCtx.strokeRect(x, y, w, h); 
+    theCtx.strokeRect(x, y, w, h); 
   });
   forthPrim('pi', () => { push(Math.PI); });
   forthPrim('circle', () => { 
     let r=pop(), y=pop(), x=pop(); 
-    graphicsCtx.beginPath();
-    graphicsCtx.arc(x, y, r, 0, Math.PI * 2);
-    graphicsCtx.fill();
+    theCtx.beginPath();
+    theCtx.arc(x, y, r, 0, Math.PI * 2);
+    theCtx.fill();
   });
   forthPrim('circle-stroke', () => { 
     let r=pop(), y=pop(), x=pop(); 
-    graphicsCtx.beginPath();
-    graphicsCtx.arc(x, y, r, 0, Math.PI * 2);
-    graphicsCtx.stroke();
+    theCtx.beginPath();
+    theCtx.arc(x, y, r, 0, Math.PI * 2);
+    theCtx.stroke();
   });
   
-  // Lines and paths
   forthPrim('move-to', () => { 
     let y=pop(), x=pop(); 
-    graphicsCtx.moveTo(x, y); 
+    theCtx.moveTo(x, y); 
   });
   forthPrim('line-to', () => { 
     let y=pop(), x=pop(); 
-    graphicsCtx.lineTo(x, y); 
+    theCtx.lineTo(x, y); 
   });
-  forthPrim('begin-path', () => { graphicsCtx.beginPath(); });
-  forthPrim('stroke-path', () => { graphicsCtx.stroke(); });
-  forthPrim('fill-path', () => { graphicsCtx.fill(); });
-  forthPrim('close-path', () => { graphicsCtx.closePath(); });
+  forthPrim('begin-path', () => { theCtx.beginPath(); });
+  forthPrim('stroke-path', () => { theCtx.stroke(); });
+  forthPrim('fill-path', () => { theCtx.fill(); });
+  forthPrim('close-path', () => { theCtx.closePath(); });
   
-  // Pixels
   forthPrim('pixel', () => { 
     let y=pop(), x=pop(); 
-    graphicsCtx.fillRect(x, y, 1, 1); 
+    theCtx.fillRect(x, y, 1, 1); 
   });
   
-  // State
-  forthPrim('save-state', () => { graphicsCtx.save(); });
-  forthPrim('restore-state', () => { graphicsCtx.restore(); });
+  forthPrim('save-state', () => { theCtx.save(); });
+  forthPrim('restore-state', () => { theCtx.restore(); });
   
-  // Transformations
   forthPrim('translate', () => { 
     let y=pop(), x=pop(); 
-    graphicsCtx.translate(x, y); 
+    theCtx.translate(x, y); 
   });
   forthPrim('rotate', () => { 
     let angle=pop(); 
-    graphicsCtx.rotate(angle); 
+    theCtx.rotate(angle); 
   });
   forthPrim('scale', () => { 
     let sy=pop(), sx=pop(); 
-    graphicsCtx.scale(sx, sy); 
+    theCtx.scale(sx, sy); 
   });
   
-  // Text
   forthPrim('font', () => { 
     let str = popString();
-    graphicsCtx.font = str; 
+    theCtx.font = str; 
   });
   forthPrim('text', () => { 
     let y=pop(), x=pop(); 
     let str = popString();
-    graphicsCtx.fillText(str, x, y); 
+    theCtx.fillText(str, x, y); 
   });
   forthPrim('text-stroke', () => { 
     let y=pop(), x=pop(); 
     let str = popString();
-    graphicsCtx.strokeText(str, x, y); 
+    theCtx.strokeText(str, x, y); 
   });
   
-  // Image operations
   forthPrim('image-data', () => { 
     let h=pop(), w=pop(), y=pop(), x=pop();
-    let imgData = graphicsCtx.getImageData(x, y, w, h);
+    let imgData = theCtx.getImageData(x, y, w, h);
     // Store in temp stack for further manipulation
     tPush(imgData);
   });
+
   forthPrim('put-image-data', () => {
     let y=pop(), x=pop();
     let imgData = tPop();
-    graphicsCtx.putImageData(imgData, x, y);
+    theCtx.putImageData(imgData, x, y);
   });
   
-  // Sprite operations
   forthPrim('load-sprite', () => {
     let urlAddr = pop();
     let url = '';
@@ -156,7 +137,7 @@ function registerGraphicsWords() {
     if (spriteIdx >= 0 && spriteIdx < sprites.length) {
       let sprite = sprites[spriteIdx];
       if (sprite.complete) {  // Check if image is loaded
-        graphicsCtx.drawImage(sprite, x, y);
+        theCtx.drawImage(sprite, x, y);
       }
     }
   });
@@ -166,7 +147,7 @@ function registerGraphicsWords() {
     if (spriteIdx >= 0 && spriteIdx < sprites.length) {
       let sprite = sprites[spriteIdx];
       if (sprite.complete) {
-        graphicsCtx.drawImage(sprite, x, y, w, h);
+        theCtx.drawImage(sprite, x, y, w, h);
       }
     }
   });
@@ -185,7 +166,6 @@ function registerGraphicsWords() {
     }
   });
   
-  // Redraw control
   forthPrim('redraw', () => { needsRedraw = true; });
   forthPrim('redraw?', () => { push(needsRedraw ? -1 : 0); });
 }
