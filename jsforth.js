@@ -150,7 +150,7 @@ function findWord(name) {
 
 function sQuote() {
   ++pos; // skip the initial space
-  nextWord('"');
+  nextWord2('"');
   push(new String(wd));
   if (state == 1) { nComma([lit, pop()]); }
 }
@@ -219,21 +219,21 @@ function inner(start) {
   }
 }
 
-function nextWord(delim = ' ') {
-  wd = '';
-  const isSpace = (delim === ' ');
-  const isWS = (p) => { return tib.charCodeAt(p) < 33; };
+function isWS() { return tib.charCodeAt(pos) < 33; }
 
-  if (isSpace) { while ((pos < tibLen) && isWS(pos)) { pos++; } }
-
+function nextWord() {
+  while ((pos < tibLen) && isWS()) { pos++; }
   const start = pos;
-  while (pos < tibLen) {
-    if (isSpace && isWS(pos)) { break; }
-    if ((delim === tib[pos])) { break; }
-    pos++;
-  }
+  while ((pos < tibLen) &&(!isWS()) ) { pos++; }
   wd = tib.slice(start, pos);
-  if (!isSpace) { pos++; }
+  return wd.length;
+}
+
+function nextWord2(d) {
+  const start = pos;
+  while ((pos < tibLen) && (d !== tib[pos])) { pos++; }
+  wd = tib.slice(start, pos);
+  pos++;
   return wd.length;
 }
 
