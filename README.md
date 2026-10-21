@@ -91,10 +91,8 @@ The Forth code then updates these elements when executed.
 
 ### Canvas Graphics Words
 
-`graphics.js` registers these words after `initGraphics(canvas)` and
-`registerGraphicsWords()` are called. Coordinates are canvas pixels, with the
-origin at the top-left and Y increasing downward. RGB arguments are supplied
-in red, green, blue order.
+Coordinates are canvas pixels, with the origin at the top-left and Y increasing downward.
+RGB arguments are supplied in RGB() (red, green, blue) order.
 
 - `canvas-width`, `canvas-height` - Push the canvas dimensions: `( -- n )`.
 - `canvas-width!`, `canvas-height!` - Set a dimension: `( n -- )`.
@@ -126,7 +124,7 @@ in red, green, blue order.
 
 ### Turtle Graphics
 
-The optional graphics words in `blocks.js` provide a simple turtle for drawing
+The optional graphics words in `blocks[]` provide a simple turtle for drawing
 on the canvas. `ttl-home` moves it to the canvas center, lifts the pen, and
 resets its heading. Heading `0` points up; `90` points right, and positive
 angles turn clockwise. Canvas coordinates start at the top-left, with Y
@@ -137,14 +135,14 @@ increasing downward.
 - `pen-up` / `pen-down` - Lift or lower the pen.
 - `pen-color` - Set the pen (stroke) color: `( r g b -- )`.
 - `ttl-goto` - Move to X/Y, drawing if the pen is down: `( x y -- )`.
-- `square` - Draw a square of the given side length: `( size -- )`.
+- `ttl-square` - Draw a square of the given side length: `( size -- )`.
 - `ttl-home` - Return to the canvas center and reset heading: `( -- )`.
 
 For example, load the turtle support block and draw a square from the center:
 
 ```forth
 10 load
-ttl-home 80 square
+ttl-home 80 ttl-square
 ```
 
 ### Embedded Forth Scripts

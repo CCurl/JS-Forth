@@ -327,8 +327,7 @@ window.addEventListener('load', async ()=>{              // load event handler
 // *********************************************************************************
 // *********************************************************************************
 // *********************************************************************************
-// graphics.js - Canvas graphics wrapper for Forth
-// Provides Forth words for drawing on the HTML canvas
+// Canvas graphics wrapper for Forth - for drawing on the HTML canvas
 
 let theCanvas = null;
 let theCtx = null;
@@ -663,7 +662,7 @@ var ttl-angle   var pen-state
 : ttl-home  ( -- ) pen-up
     canvas-width 2 / canvas-height 2 /
     ttl-goto 0 ttl-angle ! ;
-: square ( size -- ) pen-down? >t
+: ttl-square ( size -- ) pen-down? >t
     pen-down 4 for dup ttl-fw 90 ttl-rt next drop t> pen-state ! ;
 ttl-home
 `;
@@ -682,7 +681,7 @@ ttl-fw     ( dst-- )   move forward
 ttl-rt     ( deg-- )   turn right
 ttl-lt     ( deg-- )   turn left
 ttl-home   ( -- )      move to home position (canvas center)
-square     ( size-- )  draw a square
+ttl-square ( size-- )  draw a square
 `;
 
 // *********************************************************************************
