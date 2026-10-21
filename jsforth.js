@@ -1,15 +1,29 @@
 // jsforth.js - (c) Chris Curl, MIT license
 
-mem = [], dict = [], blocks = [];
-dstk = 0,   dsp = dstk, dse = 59;    // Data stack
-rstk = 60,  rsp = rstk, rse = 119;   // Return stack
-tstk = 100, tsp = tstk, tse = 169;   // Temp stack
-lstk = 170, lsp = lstk, lse = 199;   // Loop stack
-here = 200, last = -1, pc = -1, varA = 0, varB = 0;
-tib = '', wd = '', pos = 0, tibLen = 0;
-base = 10, state = 0;
+let mem = [], dict = [], blocks = [];
+let dstk = 0,   dsp = dstk, dse = 59;    // Data stack
+let rstk = 60,  rsp = rstk, rse = 119;   // Return stack
+let tstk = 100, tsp = tstk, tse = 169;   // Temp stack
+let lstk = 170, lsp = lstk, lse = 199;   // Loop stack
+let here = 200, last = -1, pc = -1, op, varA = 0, varB = 0;
+let tib = '', wd = '', pos = 0, tibLen = 0;
+let base = 10, state = 0;
 
-function forthInit() {
+// ***************************************************************
+// The bread and butter of this Forth
+function colonWord() {
+  op = mem[pc++];
+  if (mem[pc] != exit) { rPush(pc); }
+  pc = op;
+}
+
+function inner(start) {
+  pc = start;
+  while (op = mem[pc++]) { op(); }
+}
+
+// ***************************************************************
+function forthPrims() {
   forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
   forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
   forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
@@ -58,7 +72,7 @@ function forthInit() {
   forthPrim('>b',     () => { tPush(varB); varB = pop(); });
   forthPrim('<b',     () => { varB = tPop(); });
   forthPrim('1+',     () => { ++mem[dsp]; });
-  forthPrim('timer',  () => { push(Date.now()); });
+  forthPrim('timer',  () => { push(performance.now()); });
   forthPrim('here',   () => { push(here); });
   forthPrim('load',   () => { t=pop(); doLoad(t); });
   forthPrim('list',   () => { t=pop(); listForthBlock(t); });
@@ -79,8 +93,9 @@ function forthInit() {
   forthImm('while',   () => { Comma(jmpnz); Comma(pop()); });
   forthImm('until',   () => { Comma(jmpz);  Comma(pop()); });
   forthImm('again',   () => { Comma(jmp);   Comma(pop()); });
-}  
+}
 
+// ***************************************************************
 function forthPrim(name, fn) { addWord(name).xt = fn; }
 function forthImm(name, fn)  { addWord(name, true).xt = fn; }
 function under(s)    { throw new Error(`${s} Stack underflow`); }
@@ -114,14 +129,15 @@ function type(str)   { console.log(str?.toString() ?? "-undef-"); }
 function doType()    { type(pop()); }
 function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
 function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
-function errNoWord() { throw new Error(`expected a word`); }
-function checkWord() { x = nextWord(); if (!x) errNoWord(); return x; }
+function needWord()  { throw new Error(`expected a word`); }
+function checkWord() { x = nextWord(); return x ? x : needWord(); }
 function doComment() { while (nextWord() && (wd !== ')')) {} }
 function doSemi()    { Comma(exit); state = 0; }
 function doColon()   { checkWord(); addWord(wd); state = 1; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
 function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } return true; }
+function isWS() { return tib.charCodeAt(pos) < 33; }
 
 function addWord(name, immediate = false) {
   dict[++last] = { len: name.length, name, xt: here, immediate };
@@ -150,7 +166,7 @@ function findWord(name) {
 
 function sQuote() {
   ++pos; // skip the initial space
-  nextWord2('"');
+  delimWord('"');
   push(new String(wd));
   if (state == 1) { nComma([lit, pop()]); }
 }
@@ -185,41 +201,29 @@ function setHTMLValue(id, val) {
 function doSee() {
   checkWord();
   const i = findWordIndex(wd);
-  if (i !== -1) {
-    const e = dict[i];
-    if (typeof e.xt === 'function') {
-      type(`${wd}: ${e.xt.toString()}\n`);
-      return;
+  if (i == -1) { type(`{wd} not found`); return; }
+  const e = dict[i];
+  if (typeof e.xt === 'function') {
+    type(`${wd}: ${e.xt.toString()}\n`);
+    return;
+  }
+  const f = e.xt, t = (i == last) ? here : dict[i+1].xt;
+  type(`Word: ${wd} - ${f}:${t-1}\n`);
+  for (let j = f; j < t; j++) {
+    let opc = mem[j], desc = ''
+    if (typeof opc === 'number') {
+      const c = findByXT(opc);
+      if (c) { desc = ` (${c.name})`; }
     }
-    const f = e.xt, t = (i == last) ? here : dict[i+1].xt;
-    type(`Word: ${wd} - ${f}:${t-1}\n`);
-    for (let j = f; j < t; j++) {
-      let op = mem[j], desc = ''
-      if (typeof op === 'number') {
-        const c = findByXT(op);
-        if (c) { desc = ` (${c.name})`; }
-      }
-      type(`${j}: ${op}${desc}\n`);
-    }
-  } else {
-    type(`see: ${wd} not found\n`);
+    type(`${j}: ${opc}${desc}\n`);
   }
 }
 
-function inner(start) {
-  pc = start;
-  while ((pc)  && (pc < mem.length)) {
-    const op = mem[pc++];
-    if (op === undefined) { return; }
-    if (typeof op === 'function') { op(); }
-    else {
-      if (mem[pc] != exit) { rPush(pc); }
-      pc = op;
-    }
-  }
+function doNWB(n, w, b) {
+  if (isNaN(n)) { console.log(n); return; }
+  if (!b) { b = base; }
+  console.log(n.toString(b).padStart(w, '0'));
 }
-
-function isWS() { return tib.charCodeAt(pos) < 33; }
 
 function nextWord() {
   while ((pos < tibLen) && isWS()) { pos++; }
@@ -229,7 +233,7 @@ function nextWord() {
   return wd.length;
 }
 
-function nextWord2(d) {
+function delimWord(d) {
   const start = pos;
   while ((pos < tibLen) && (d !== tib[pos])) { pos++; }
   wd = tib.slice(start, pos);
@@ -237,29 +241,26 @@ function nextWord2(d) {
   return wd.length;
 }
 
+// Supports integers, floats, 0x<Hex>, and 0b<Binary>
 function doNum(w) {
-  // Supports 0x<Hex> or 0b<Binary> notation
   const x = Number(w);
   if (!isNaN(x)) { return doLit(x); }
   return false;
 }
 
-function doNWB(n, w, b) {
-  if (isNaN(n)) { console.log(n); return; }
-  if (!b) { b = base; }
-  console.log(n.toString(b).padStart(w, '0'));
-}
-
 function doWord(token) {
   const entry = findWord(token);
   if (!entry) { return false; }
+  const isPrimitive = typeof entry.xt === 'function';
   if (entry.immediate || (state == 0)) {
-    const x = here+100;
-    mem[x] = entry.xt;
-    mem[x+1] = undefined;
-    inner(x);
+    let x = here+100;
+    if (!isPrimitive) { mem[x++] = colonWord; }
+    mem[x++] = entry.xt;
+    mem[x] = undefined;
+    inner(here+100);
   } else {
-    Comma(entry.xt); // compile reference
+    if (!isPrimitive) { Comma(colonWord); }
+    Comma(entry.xt);
   }
   return true;
 }
@@ -279,8 +280,6 @@ function outer(source) {
   }
   tib = s1; pos = p1; tibLen = l1;
 }
-
-forthInit();
 
 function runForth(src, logCmd = true, logOutput = true) {
   const origLog = console.log;
@@ -310,6 +309,7 @@ function runForth(src, logCmd = true, logOutput = true) {
 // For handling embedded Forth scripts in the HTML document
 window.addEventListener('load', async ()=>{              // load event handler
     let slst = document.getElementsByTagName('script')   // get scripts
+    forthPrims();
     for (let i=0; i<slst.length; i++) {
         let s = slst[i]
         if (s.type != 'application/forth') continue;     // handle embedded Forth 
@@ -321,3 +321,397 @@ window.addEventListener('load', async ()=>{              // load event handler
         else { runForth(s.innerText, false); }
     }
 });
+
+// *********************************************************************************
+// *********************************************************************************
+// *********************************************************************************
+// *********************************************************************************
+// *********************************************************************************
+// graphics.js - Canvas graphics wrapper for Forth
+// Provides Forth words for drawing on the HTML canvas
+
+let theCanvas = null;
+let theCtx = null;
+let sprites = [];  // Sprite storage: index -> Image object
+
+function initGraphics(canvas) {
+  theCanvas = canvas;
+  theCtx = canvas.getContext('2d');
+}
+
+function spriteAt(x) { return (0 <= x) && (x < sprites.length) ? sprites[x] : null; }
+
+function registerGraphicsWords() {
+  forthPrim('canvas-width', () => { push(theCanvas.width); });
+  forthPrim('canvas-height', () => { push(theCanvas.height); });
+  
+  forthPrim('canvas-width!',  () => { theCanvas.width = pop(); });
+  forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
+  forthPrim('resize-canvas',  () => {
+    theCanvas.width = pop();
+    theCanvas.height = pop();
+  });
+  
+  forthPrim('clear', () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
+  forthPrim('color', () => { 
+    let b=pop(), g=pop(), r=pop(); 
+    theCtx.fillStyle = `rgb(${r},${g},${b})`;
+  });
+  forthPrim('stroke', () => { 
+    let b=pop(), g=pop(), r=pop(); 
+    theCtx.strokeStyle = `rgb(${r},${g},${b})`;
+  });
+  forthPrim('fill-alpha', () => { theCtx.globalAlpha = pop() / 255; });
+  forthPrim('line-width', () => { theCtx.lineWidth = pop(); });
+  
+  forthPrim('rect', () => { 
+    let h=pop(), w=pop(), y=pop(), x=pop(); 
+    theCtx.fillRect(x, y, w, h); 
+  });
+  forthPrim('rect-stroke', () => { 
+    let h=pop(), w=pop(), y=pop(), x=pop(); 
+    theCtx.strokeRect(x, y, w, h); 
+  });
+  forthPrim('circle', () => { 
+    let r=pop(), y=pop(), x=pop(); 
+    theCtx.beginPath();
+    theCtx.arc(x, y, r, 0, Math.PI * 2);
+    theCtx.fill();
+  });
+  forthPrim('circle-stroke', () => { 
+    let r=pop(), y=pop(), x=pop(); 
+    theCtx.beginPath();
+    theCtx.arc(x, y, r, 0, Math.PI * 2);
+    theCtx.stroke();
+  });
+  
+  forthPrim('pi',            () => { push(Math.PI); });
+  forthPrim('pixel',         () => { y=pop(); x=pop(); theCtx.fillRect(x, y, 1, 1); });
+  forthPrim('move-to',       () => { y=pop(); x=pop(); theCtx.moveTo(x, y); });
+  forthPrim('line-to',       () => { y=pop(); x=pop(); theCtx.lineTo(x, y); });
+  forthPrim('begin-path',    () => { theCtx.beginPath(); });
+  forthPrim('stroke-path',   () => { theCtx.stroke(); });
+  forthPrim('fill-path',     () => { theCtx.fill(); });
+  forthPrim('close-path',    () => { theCtx.closePath(); });
+  forthPrim('save-state',    () => { theCtx.save(); });
+  forthPrim('restore-state', () => { theCtx.restore(); });
+  forthPrim('translate',     () => { y=pop(); x=pop(); theCtx.translate(x, y); });
+  forthPrim('rotate',        () => { angle=pop(); theCtx.rotate(angle); });
+  forthPrim('scale',         () => { y=pop(); x=pop(); theCtx.scale(x, y); });
+  forthPrim('font',          () => { theCtx.font = pop(); });
+  forthPrim('text',          () => { y=pop(); x=pop(); s=pop(); theCtx.fillText(s, x, y); });
+  forthPrim('text-stroke',   () => { y=pop(); x=pop(); s=pop(); theCtx.strokeText(s, x, y); });
+  forthPrim('sprite-width',  () => { s = spriteAt(pop()); push(s ? s.width : 0); });
+  forthPrim('sprite-height', () => { s = spriteAt(pop()); push(s ? s.height : 0); });
+  forthPrim('redraw',        () => { needsRedraw = true; });
+  forthPrim('redraw?',       () => { push(needsRedraw ? -1 : 0); });
+  
+  forthPrim('image-data', () => { 
+    let h=pop(), w=pop(), y=pop(), x=pop();
+    let imgData = theCtx.getImageData(x, y, w, h);
+    // Store in temp stack for further manipulation
+    tPush(imgData);
+  });
+
+  forthPrim('put-image-data', () => {
+    let y=pop(), x=pop();
+    let imgData = tPop();
+    theCtx.putImageData(imgData, x, y);
+  });
+  
+  forthPrim('load-sprite', () => {
+    let img = new Image();
+    img.src = pop();
+    let spriteIdx = sprites.length;
+    sprites.push(img);
+    push(spriteIdx);  // Return sprite index
+  });
+  
+  forthPrim('draw-sprite', () => {
+    let spriteIdx = pop(), y = pop(), x = pop();
+    let sprite = spriteAt(spriteIdx);
+    if (sprite) {
+      if (sprite.complete) {  // Check if image is loaded
+        theCtx.drawImage(sprite, x, y);
+      }
+    }
+  });
+  
+  forthPrim('draw-sprite-scaled', () => {
+    let h = pop(), w = pop(), spriteIdx = pop(), y = pop(), x = pop();
+    let sprite = spriteAt(spriteIdx);
+    if (sprite) {
+      if (sprite.complete) {
+        theCtx.drawImage(sprite, x, y, w, h);
+      }
+    }
+  });
+}
+
+ // *********************************************************************************
+ // ray-casting support - a generic Doom-style raycasting engine
+ // Provides core raycasting, rendering, and animation loop
+ // Does not depend on any specific game world or Forth integration
+ 
+ function castRay(world, x, y, angle) {
+  const dx = Math.cos(angle);
+  const dy = Math.sin(angle);
+  const maxDist = 20;
+  const step = 0.1;
+  const width = world[0].length;
+  const height = world.length;
+  
+  for (let dist = step; dist < maxDist; dist += step) {
+    const px = x + dx * dist;
+    const py = y + dy * dist;
+    const gridX = Math.floor(px);
+    const gridY = Math.floor(py);
+    
+    if (gridX < 0 || gridX >= width || gridY < 0 || gridY >= height) {
+      return dist; // hit boundary
+    }
+    if (world[gridY][gridX] === 1) {
+      return dist; // hit wall
+    }
+  }
+  return maxDist;
+}
+
+function getGraffitiColor(x, y, baseBrightness) {
+  const noise = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  const variation = (noise - Math.floor(noise)) * 100 - 50;
+  const gray = Math.max(30, Math.min(255, Math.floor(baseBrightness + variation)));
+  return `rgb(${gray}, ${gray}, ${gray})`;
+}
+
+let renderCanvas = undefined;
+let outputCtx = undefined, ctx2D = undefined;
+let game = undefined;
+let world = undefined;
+let needsRedraw = false;  // Redraw flag controlled by Forth
+
+function createRaycastRenderer(theGame, theWorld) {
+  game = theGame;
+  world = theWorld;
+  outputCtx = game.ctx;
+  if (!renderCanvas) renderCanvas = document.createElement('canvas');
+  renderCanvas.width = Math.max(1, Math.floor(game.canvas.width / 2));
+  renderCanvas.height = Math.max(1, Math.floor(game.canvas.height / 2));
+  outputCtx.imageSmoothingEnabled = false;
+  return renderRaycastFrame;
+}
+
+function renderRaycastFrame() {
+    if (!ctx2D) { ctx2D = renderCanvas.getContext('2d'); }
+    const width = renderCanvas.width;
+    const height = renderCanvas.height;
+    const player = game.player;
+    const fov = Math.PI / 2.4; // ~60 degrees
+    
+    // Clear screen
+    ctx2D.fillStyle = '#111';
+    ctx2D.fillRect(0, 0, width, height);
+    
+    // Draw ceiling
+    ctx2D.fillStyle = '#DFE8F0';
+    ctx2D.fillRect(0, 0, width, height / 2);
+    
+    // Draw checkerboard floor
+    const floorStart = height / 2;
+    const floorSize = 0.5; // size of each checkerboard square
+    const rayCos = new Float64Array(width);
+    const raySin = new Float64Array(width);
+    for (let screenX = 0; screenX < width; screenX++) {
+      const rayAngle = player.angle - fov / 2 + (screenX / width) * fov;
+      rayCos[screenX] = Math.cos(rayAngle);
+      raySin[screenX] = Math.sin(rayAngle);
+    }
+
+    const floorPixels = ctx2D.createImageData(width, height - floorStart);
+    const floorData = floorPixels.data;
+    for (let screenY = Math.floor(floorStart); screenY < height; screenY++) {
+      const verticalDist = screenY - height / 2;
+      const horizDist = (height / 2) / verticalDist;
+      let pixelIndex = (screenY - floorStart) * width * 4;
+      for (let screenX = 0; screenX < width; screenX++) {
+        const worldX = player.x + rayCos[screenX] * horizDist;
+        const worldY = player.y + raySin[screenX] * horizDist;
+        const tileX = Math.floor(worldX / floorSize);
+        const tileY = Math.floor(worldY / floorSize);
+        const isYellow = (tileX + tileY) % 2 === 0;
+        floorData[pixelIndex++] = isYellow ? 255 : 139;
+        floorData[pixelIndex++] = isYellow ? 221 : 105;
+        floorData[pixelIndex++] = isYellow ? 68 : 20;
+        floorData[pixelIndex++] = 255;
+      }
+    }
+    ctx2D.putImageData(floorPixels, 0, floorStart);
+    
+    // Cast rays and render columns
+    for (let col = 0; col < width; col++) {
+      const rayAngle = player.angle - fov / 2 + (col / width) * fov;
+      const dist = castRay(world, player.x, player.y, rayAngle);
+      
+      // Correct for fish-eye effect
+      const correctedDist = dist * Math.cos(rayAngle - player.angle);
+      
+      // Calculate wall height with sub-pixel precision
+      const wallHeight = Math.max(15, (height / correctedDist) * 2.5);
+      const topExact = (height - wallHeight) / 2;
+      const top = Math.floor(topExact);
+      const bottomExact = topExact + wallHeight;
+      const bottom = Math.ceil(bottomExact);
+      
+      // Base brightness based on distance
+      const baseBrightness = Math.max(30, Math.floor(255 - correctedDist * 30));
+      
+      // Draw column with graffiti texture
+      const rayX = player.x + rayCos[col] * dist;
+      const rayY = player.y + raySin[col] * dist;
+      
+      const textureStep = 4;
+      for (let pixelY = top; pixelY < bottom; pixelY += textureStep) {
+        let textureY = (pixelY - topExact) / wallHeight;
+        
+        // Clamp to wall bounds
+        if (textureY < 0) textureY = 0;
+        if (textureY > 1) textureY = 1;
+        
+        const color = getGraffitiColor(rayX * 2, rayY * 2 + textureY, baseBrightness);
+        ctx2D.fillStyle = color;
+        ctx2D.fillRect(col, pixelY, 1, Math.min(textureStep, bottom - pixelY));
+      }
+    }
+
+    outputCtx.drawImage(renderCanvas, 0, 0, game.canvas.width, game.canvas.height);
+  }
+
+function createRaycastLoop(renderFn, inputFn, game) {
+  return function raycastLoop(time) {
+    if (game.running) {
+      inputFn();
+      handleGameLogic();
+      if (needsRedraw) {
+        renderFn();
+        needsRedraw = false;
+      }
+      requestAnimationFrame(raycastLoop);
+    }
+  };
+}
+
+// *********************************************************************************
+// *********************************************************************************
+// *********************************************************************************
+// *********************************************************************************
+// *********************************************************************************
+// Blocks - edit them here!
+blocks[0] = `block | Description
+------|---------------------------
+   0  | This text
+   1  | Utility / Benchmark
+   2  | Geometry
+  10  | Turtle graphics support
+  11  | Turtle graphics documentation
+  20  | Doom Demo words
+  21  | Doom Demo documentation
+`;
+
+blocks[1] = `( Utility and benchmark words )
+: @a a@ @ ;      : @a+ a@ dup 1+ a! @ ;
+: @b b@ @ ;      : @b+ b@ dup 1+ b! @ ;
+: >ab >b >a ;   : <ab <a <b ;
+: k 1000 * ;    : mil k k ;
+: lap timer ;   : .lap timer swap - . ;
+: bm lap swap for next .lap ;
+: dump swap >a for a@ . ." - " @a+ . cr next <a ;
+2 load  10 load  20 load
+`;
+
+blocks[2] = `( Geometry words )
+: deg>rad  ( deg--rad )  pi * 180 / ;
+: squared  ( n-- n1 )    dup * ;
+: area     ( r--n )      squared pi * ;
+: diameter ( r--n )      dup + ;
+: circumference ( r--n ) 2 * pi * ;
+`;
+
+// *********************************************************************************
+// Turtle graphics support
+blocks[10] = `( Turtle graphics support, ttl => turtle )
+var ttl-x       var ttl-y
+var ttl-angle   var pen-state
+
+: pen-color ( r g b-- ) stroke ;
+: pen-up    ( -- )    0 pen-state ! ;
+: pen-down  ( -- )   -1 pen-state ! ;
+: pen-down? ( -- n )  pen-state @ ;
+
+: ttl-goto ( x y-- )
+    pen-down? if begin-path ttl-x @ ttl-y @ move-to then
+    ttl-y ! ttl-x !
+    pen-down? if ttl-x @ ttl-y @ line-to stroke-path then ;
+
+: ttl-fw ( distance -- )
+    >b ttl-angle @ deg>rad >a
+    ttl-x @ a@ sin b@ * +
+    ttl-y @ a@ cos b@ * -
+    ttl-goto <a <b ;
+  
+: ttl-rt ( angle -- ) ttl-angle @ + ttl-angle ! ;
+: ttl-lt ( angle -- ) negate ttl-rt ;
+: ttl-home  ( -- ) pen-up
+    canvas-width 2 / canvas-height 2 /
+    ttl-goto 0 ttl-angle ! ;
+: square ( size -- ) pen-down? >t
+    pen-down 4 for dup ttl-fw 90 ttl-rt next drop t> pen-state ! ;
+ttl-home
+`;
+
+blocks[11] = `( Turtle graphics documentation )
+ttl-x      ( --addr )  x-coordinate of turtle
+ttl-y      ( --addr )  y-coordinate of turtle
+ttl-angle  ( --addr )  heading of turtle in degrees
+pen-color  ( r g b-- ) pen color
+pen-state  ( --addr )  pen state (0 => up, -1 => down)
+pen-up     ( -- )      put pen up
+pen-down   ( -- )      put pen down
+pen-down?  ( --f )     check if pen is down
+ttl-goto   ( x y-- )   goto to position (x, y), with pen
+ttl-fw     ( dst-- )   move forward
+ttl-rt     ( deg-- )   turn right
+ttl-lt     ( deg-- )   turn left
+ttl-home   ( -- )      move to home position (canvas center)
+square     ( size-- )  draw a square
+`;
+
+// *********************************************************************************
+ // Demo words
+blocks[20] = `( Doom-O words )
+: go game-go redraw ."  Running!" 21 list ;
+: stop game-stop ."  Stopped!" ;
+: update game-frame ;
+: hkey ( n -- ) ( Handle Keys )
+    2 mod/ if mF then ( fwd )
+    2 mod/ if mL then ( left )
+    2 mod/ if mB then ( back )
+    2 mod/ if mR then ( right )
+    2 mod/ if tL then ( turn left )
+    1 and  if tR then ( turn right )
+    redraw ;
+`;
+
+blocks[21] = `( Doom-O Documentation )
+( Keyboard controls: WASD to move, JK to turn, ESC to stop )
+( game-go      -- Initialize and start the game )
+( game-stop    -- Stop the game and return to Forth )
+( game-pause   -- Pause the game (ignore input) )
+( game-resume  -- Resume from pause )
+( game-paused? -- Check if game is paused )
+( mF           -- Move forward )
+( mB           -- Move backward )
+( mL           -- Move left )
+( mR           -- Move right )
+( tL           -- Turn left )
+( tR           -- Turn right )
+`;

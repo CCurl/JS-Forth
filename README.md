@@ -24,15 +24,15 @@ This is a complete Forth virtual machine implemented in ~300 lines of JavaScript
 ### Core Components
 
 - **Memory (`mem`)**: Unified array holding stacks, dictionary, and compiled code
-  - Data Stack: base 0, grows upward
-  - Return Stack: base 65, grows upward
-  - Loop Stack: base 130, grows upward
-  - Temp Stack: base 161, grows upward
-  - Compiled Code: starts at address 194
+  - Data Stack: base 0, grows upward (0-59)
+  - Return Stack: base 60, grows upward (60-119)
+  - Temp Stack: base 100, grows upward (100-169)
+  - Loop Stack: base 170, grows upward (170-199)
+  - Compiled Code: starts at address 200
 - **Dictionary (`dictionary[]`)**: Array of word definitions with name, execution token (xt), and immediate flag
 - **Input Buffer (`tib`, `pos`, `tibLen`)**: Tokenization state
 - **Program Counter (`pc`)**: Current instruction pointer during execution
-- **Compilation Flag (`compiling`)**: Tracks whether in compile or immediate mode
+- **Compilation Flag (`state`)**: Tracks execution mode (0 = immediate/execute, 1 = compile)
 
 ### Execution Model
 
@@ -185,18 +185,23 @@ Stack effects below use `--` to separate inputs from outputs. True comparison re
 - `drop` - Remove the top item: `( n -- )`
 - `swap` - Exchange the top two items: `( a b -- b a )`
 - `over` - Copy the second item to the top: `( a b -- a b a )`
+- `.s` - Display the data stack without removing items: `( -- )`
 - `+`, `-`, `*`, `/` - Arithmetic: `( a b -- result )`; division uses JavaScript `/` and is not truncated.
+- `negate` - Negate the top item: `( n -- -n )`
+- `/mod` - Divide and modulo: `( a b -- quotient remainder )`
+- `mod/` - Modulo and divide: `( a b -- remainder quotient )`
 - `<`, `=`, `>` - Compare two values: `( a b -- flag )`
 - `0=` - Test whether the top item is zero: `( n -- flag )`
 - `1+` - Increment the top item: `( n -- n+1 )`
 
 ### Bitwise and Memory
 - `and`, `or`, `xor` - Bitwise operations on the top two values: `( a b -- result )`
-- `com` - Bitwise complement. Complements the top of stack.
+- `com` - Bitwise complement of the top item: `( n -- result )`
 - `@` - Fetch a memory cell: `( addr -- value )`
 - `!` - Store a value at an address: `( value addr -- )`
 - `,` - Compile a value at the current `here` address: `( n -- )`
 - `here` - Push the current compilation address: `( -- addr )`
+- `allot` - Allocate memory by incrementing `here`: `( n -- )`
 
 ### Output and HTML
 - `.` - Print and remove the top item; numeric values are followed by a space: `( n -- )`
@@ -225,37 +230,53 @@ Stack effects below use `--` to separate inputs from outputs. True comparison re
 - `list` - Display a stored block in the UI textarea: `( block-num -- )`.
 
 ### Variables and Temporary Stack
-- `a`, `b` - Push the corresponding variable value: `( -- val )`.
+- `a@`, `b@` - Push the corresponding variable value: `( -- val )`.
 - `a!`, `b!` - Store the top value in the corresponding variable: `( val -- )`.
+- `>a`, `>b` - Save the top data-stack value to the corresponding variable: `( val -- )`.
+- `<a`, `<b` - Push the corresponding variable value from temporary storage: `( -- val )`.
 - `>t` - Move the top data-stack value to the temporary stack: `( val -- )`.
 - `t@` - Copy the temporary stack's top value to the data stack: `( -- val )`.
 - `t>` - Pop the temporary stack onto the data stack: `( -- val )`.
+- `<t` - Pop and discard from the temporary stack: `( -- )`.
 
 ### Utilities
-- `timer` - Push the current Unix timestamp in milliseconds: `( -- ms )`.
-- `cycle` - Push the `cycle` variable. The interpreter currently does not increment it.
+- `timer` - Push the current high-precision time from `performance.now()`: `( -- time )`; returns microseconds with fractional precision.
+- `sin`, `cos` - Trigonometric functions: `( radians -- result )`.
+- `base@`, `base!` - Get or set the current number base (default 10): `( -- base )` / `( base -- )`.
+- `state@`, `state!` - Get or set the compilation state (0=execute, 1=compile): `( -- state )` / `( state -- )`.
 
 ## Implementation Details
 
 ### Function Reference
 
 - `push(val)` - Add value to data stack
-- `pop()` - Remove and return top of stack (returns 0 on underflow)
+- `pop()` - Remove and return top of stack (throws error on underflow)
 - `TOS()` / `NOS()` - Peek at top/next-on-stack without removing
+- `setTOS(val)` / `setNOS(val)` - Modify top/next-on-stack without popping
 - `Comma(x)` - Store value at `here` pointer and increment
-- `inner(start)` - Execute compiled code starting at address
+- `nComma(array)` - Store multiple values via Comma
+- `rPush(val)` / `rPop()` - Return stack operations
+- `lPush(val)` / `lPop()` - Loop stack operations
+- `tPush(val)` / `tPop()` - Temp stack operations
+- `colonWord()` - Dispatch handler for colon-defined words
+- `inner(start)` - Execute compiled code starting at address; calls functions directly
 - `outer(source)` - Parse and execute/compile source string
-- `define(name, immediate)` - Add entry to dictionary
-- `forthPrim(name, fn)` - Add a primitive to dictionary
-- `forthImm(name, fn)` - Add an IMMEDIATE primitive to dictionary
-- `nextWord(delim)` - Extract next token from input buffer
+- `addWord(name, immediate)` - Add entry to dictionary
+- `findWord(name)` - Look up word by name
+- `findWordIndex(name)` - Find word index in dictionary
+- `findByXT(xt)` - Find word by execution token
+- `forthPrim(name, fn)` - Register a primitive (function) in the dictionary
+- `forthImm(name, fn)` - Register an IMMEDIATE primitive in the dictionary
+- `nextWord()` - Extract next whitespace-delimited token from input buffer
+- `delimWord(delim)` - Extract token delimited by a specific character
 - `doNum(token)` - Parse and handle numeric literal
 - `doWord(token)` - Look up and execute/compile word
-- `doColon(token)` - Begin word definition
-- `doSemi(token)` - End word definition
+- `doColon()` - Begin word definition
+- `doSemi()` - End word definition
+- `doLit(n)` - Handle numeric literals during compilation or execution
 - `listForthBlock(n)` - Display block n in the UI textarea
 - `setHTMLValue(id, val)` - Update HTML element with given ID
-- `doSee()` - Inspect word definition (next word from input)
+- `doSee()` - Inspect word definition
 
 ## Browser Integration
 
