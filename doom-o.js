@@ -178,17 +178,17 @@ forthPrim('turn-right',   () => { turnRight(); });
 : stop game-stop ."  Stopped!" ;
 : update game-frame ;
 : hkey ( n -- ) ( Handle Keys )
-    2 mod/ if move-fwd   then
-    2 mod/ if move-left  then
-    2 mod/ if move-back  then
-    2 mod/ if move-right then
-    2 mod/ if turn-left  then
-    1 and  if turn-right then
+    2 mod/ if move-fwd   then ( 'w' key )
+    2 mod/ if move-left  then ( 'a' key )
+    2 mod/ if move-back  then ( 's' key )
+    2 mod/ if move-right then ( 'd' key )
+    2 mod/ if turn-left  then ( 'j' key )
+    1 and  if turn-right then ( 'k' key )
     redraw ;
 `;
 
 blocks[21] = `Doom-O Documentation
-Keyboard controls: WASD to move, JK to turn, ESC to stop
+Keyboard controls: w/a/s/d to move, j/k to turn, ESC to stop
 game-go      ( -- )  Initialize and start the game
 game-stop    ( -- )  Stop the game and return to Forth
 game-pause   ( -- )  Pause the game (ignore input)

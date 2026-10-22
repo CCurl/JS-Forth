@@ -30,9 +30,14 @@ This is a complete Forth virtual machine implemented in ~300 lines of JavaScript
   - Temp Stack: base 100, grows upward (100-169)
   - Loop Stack: base 170, grows upward (170-199)
   - Compiled Code: starts at address 200
-- **Dictionary (`dictionary[]`)**: Array of word definitions with name, execution token (xt), and immediate flag
-- **Input Buffer (`tib`, `pos`, `tibLen`)**: Tokenization state
+- **Dictionary (`dictionary[]`)**: Array of word definitions with:
+  - len: length of the word's name
+  - name: name of the word
+  - xt: execution token (function for prims, index for colon-words)
+  - imm: immediate flag
+- **Input Buffer (`tib`, `toIn`, `tibLen`)**: Tokenization state
 - **Program Counter (`pc`)**: Current instruction pointer during execution
+- **Opcode (`op`)**: Current instruction during execution
 - **Compilation Flag (`state`)**: Tracks execution mode (0 = immediate/execute, 1 = compile)
 
 ### Execution Model
@@ -99,7 +104,7 @@ Embed Forth code directly in HTML using `type="application/forth"`:
    ." hello world!"
 </script>
 
-<script type="application/forth" src="program.forth"></script>
+<script type="application/forth" src="program.fth"></script>
 ```
 
 - Inline scripts execute their `innerText`
@@ -119,13 +124,10 @@ runForth('5 3 + .');  // Outputs: 8
 outer('10 2 / .');    // Outputs: 5
 ```
 
-## Forth Words
-
-Stack effects below use `--` to separate inputs from outputs. True comparison results are `-1`; false results are `0`.
-
 ### Forth Word Reference
 
-Stack effects use `--` to separate inputs from outputs. True comparison results are `-1`; false results are `0`.
+- Stack effects use `( i--o )` to separate inputs from outputs.
+- True comparison results are `-1`; false results are `0`.
 
 | Name               | Stack                  | Description|
 |--------------------|------------------------|--------------------------------------------------|

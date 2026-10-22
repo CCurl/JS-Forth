@@ -1,4 +1,4 @@
-// jsforth.js - (c) Chris Curl, MIT license
+// jsforth.js - (c) 2026, Chris Curl, MIT license
 
 let mem = [], dict = [], blocks = [];
 let dstk = 0,   dsp = dstk, dse = 59;    // Data stack
@@ -6,8 +6,8 @@ let rstk = 60,  rsp = rstk, rse = 119;   // Return stack
 let tstk = 100, tsp = tstk, tse = 169;   // Temp stack
 let lstk = 170, lsp = lstk, lse = 199;   // Loop stack
 let here = 200, last = -1, pc = -1, op, varA = 0, varB = 0;
-let tib = '', wd = '', pos = 0, tibLen = 0;
-let base = 10, state = 0;
+let tib = '', wd = '', toIn = 0, tibLen = 0;
+let base = 10, state = 0, L0=0, L1=0, L2=0;
 
 // ***************************************************************
 // The bread and butter of this Forth
@@ -49,9 +49,9 @@ function forthPrims() {
   forthPrim(',',      () => { Comma(pop()); });
   forthPrim('.NWB',   () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
   forthPrim('.',      () => { doNWB(pop(),0,base); type(' ');});
-  forthPrim('for',    () => { lPush(pc); lPush(pop()); lPush(0); });
-  forthPrim('i',      () => { push(L0()); });
-  forthPrim('next',   () => { ++mem[lsp]; if (L0()<L1()) pc=L2(); else unloop(); });
+  forthPrim('for',    () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
+  forthPrim('i',      () => { push(L0); });
+  forthPrim('next',   () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
   forthPrim('emit',   () => { emit(pop()); });
   forthPrim('exit',   () => { exit(); });
   forthPrim('type',   () => { doType(); });
@@ -81,7 +81,7 @@ function forthPrims() {
   forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
   forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
   forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
-  forthPrim('immediate', () => { dict[last].immediate = true; });
+  forthPrim('immediate', () => { dict[last].imm = true; });
   forthPrim('base@',  () => { push(base); });
   forthPrim('base!',  () => { base = pop(); });
   forthPrim('state@', () => { push(state); });
@@ -114,10 +114,7 @@ function setTOS(val) { mem[dsp] = val; }
 function setNOS(val) { mem[dsp-1] = val; }
 function Comma(x)    { mem[here++] = x; }
 function nComma(a)   { for (let i=0; i<a.length; i++) { Comma(a[i]); } }
-function L0()        { return mem[lsp]; }
-function L1()        { return mem[lsp-1]; }
-function L2()        { return mem[lsp-2]; }
-function unloop()    { lPop(); lPop(); lPop(); }
+function unloop()    { L0=lPop(); L1=lPop(); L2=lPop(); }
 function exit()      { pc = rPop(); }
 function lit()       { push(mem[pc++]); }
 function jmp()       { tgt = mem[pc++]; pc = tgt; }
@@ -138,10 +135,10 @@ function doColon()   { checkWord(); addWord(wd); state = 1; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
 function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } return true; }
-function isWS() { return tib.charCodeAt(pos) < 33; }
+function isWS()      { return tib.charCodeAt(toIn) < 33; }
 
 function addWord(name, immediate = false) {
-  dict[++last] = { len: name.length, name, xt: here, immediate };
+  dict[++last] = { len: name.length, name: name, xt: here, imm: immediate };
   return dict[last];
 }  
 
@@ -154,9 +151,7 @@ function findWordIndex(name) {
 }  
 
 function findByXT(xt) {
-  for (let i = last; i >= 0; i--) {
-    if (dict[i].xt === xt) return dict[i];
-  }  
+  for (let i = last; i >= 0; i--) { if (dict[i].xt === xt) return dict[i]; }  
   return null;
 }  
 
@@ -166,7 +161,7 @@ function findWord(name) {
 }  
 
 function sQuote() {
-  ++pos; // skip the initial space
+  ++toIn; // skip the initial space
   delimWord('"');
   push(new String(wd));
   if (state == 1) { nComma([lit, pop()]); }
@@ -227,18 +222,18 @@ function doNWB(n, w, b) {
 }
 
 function nextWord() {
-  while ((pos < tibLen) && isWS()) { pos++; }
-  const start = pos;
-  while ((pos < tibLen) &&(!isWS()) ) { pos++; }
-  wd = tib.slice(start, pos);
+  while ((toIn < tibLen) && isWS()) { toIn++; }
+  const start = toIn;
+  while ((toIn < tibLen) &&(!isWS()) ) { toIn++; }
+  wd = tib.slice(start, toIn);
   return wd.length;
 }
 
 function delimWord(d) {
-  const start = pos;
-  while ((pos < tibLen) && (d !== tib[pos])) { pos++; }
-  wd = tib.slice(start, pos);
-  pos++;
+  const start = toIn;
+  while ((toIn < tibLen) && (d !== tib[toIn])) { toIn++; }
+  wd = tib.slice(start, toIn);
+  toIn++; // skip closing delimiter
   return wd.length;
 }
 
@@ -253,7 +248,7 @@ function doWord(token) {
   const entry = findWord(token);
   if (!entry) { return false; }
   const isPrimitive = typeof entry.xt === 'function';
-  if (entry.immediate || (state == 0)) {
+  if (entry.imm || (state == 0)) {
     let x = here+100;
     if (!isPrimitive) { mem[x++] = colonWord; }
     mem[x++] = entry.xt;
@@ -267,10 +262,8 @@ function doWord(token) {
 }
 
 function outer(source) {
-  const s1 =  tib, p1 = pos, l1 = tibLen;
-  tib = source;
-  tibLen = tib.length;
-  pos = 0;
+  const cTib =  tib, cIn = toIn, cLen = tibLen;
+  tib = source, tibLen = tib.length, toIn = 0;
   while (nextWord() > 0) {
     if (wd == '(') { doComment(); continue; }
     if (wd == ':') { doColon(); continue; }
@@ -279,7 +272,7 @@ function outer(source) {
     if (doWord(wd)) { continue; }
     throw new Error(`unknown word: ${wd}`);
   }
-  tib = s1; pos = p1; tibLen = l1;
+  tib = cTib, toIn = cIn, tibLen = cLen;
 }
 
 function runForth(src, logCmd = true, logOutput = true) {
