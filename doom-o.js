@@ -154,19 +154,20 @@ function handleGameLogic() {
   // There is no game logic ... yet
 }
 
-forthPrim('game-go',      () => { raycastInit(); });
-forthPrim('game-stop',    () => { theGame.running = false; });
-forthPrim('game-pause',   () => { theGame.paused = true; });
-forthPrim('game-resume',  () => { theGame.paused = false; });
-forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
-forthPrim('game-frame',   () => { renderRaycastFrame(); });
-forthPrim('move-fwd',     () => { moveForward(); });
-forthPrim('move-back',    () => { moveBackward(); });
-forthPrim('move-left',    () => { moveLeft(); });
-forthPrim('move-right',   () => { moveRight(); });
-forthPrim('turn-left',    () => { turnLeft(); });
-forthPrim('turn-right',   () => { turnRight(); });
-
+initFunc(() => {
+  forthPrim('game-go',      () => { raycastInit(); });
+  forthPrim('game-stop',    () => { theGame.running = false; });
+  forthPrim('game-pause',   () => { theGame.paused = true; });
+  forthPrim('game-resume',  () => { theGame.paused = false; });
+  forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
+  forthPrim('game-frame',   () => { renderRaycastFrame(); });
+  forthPrim('move-fwd',     () => { moveForward(); });
+  forthPrim('move-back',    () => { moveBackward(); });
+  forthPrim('move-left',    () => { moveLeft(); });
+  forthPrim('move-right',   () => { moveRight(); });
+  forthPrim('turn-left',    () => { turnLeft(); });
+  forthPrim('turn-right',   () => { turnRight(); });
+});
 
 // *********************************************************************************
  // Demo words

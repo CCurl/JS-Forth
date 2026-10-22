@@ -7,7 +7,8 @@ let tstk = 100, tsp = tstk, tse = 169;   // Temp stack
 let lstk = 170, lsp = lstk, lse = 199;   // Loop stack
 let here = 200, last = -1, pc = -1, op, varA = 0, varB = 0;
 let tib = '', wd = '', toIn = 0, tibLen = 0;
-let base = 10, state = 0, L0=0, L1=0, L2=0;
+let base = 10, state = 0, L0 = 0, L1 = 0, L2 = 0;
+let forthInitFuncs = [];
 
 // ***************************************************************
 // The bread and butter of this Forth
@@ -52,6 +53,7 @@ function forthPrims() {
   forthPrim('for',    () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
   forthPrim('i',      () => { push(L0); });
   forthPrim('next',   () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
+  forthPrim('unloop', () => { unloop(); });
   forthPrim('emit',   () => { emit(pop()); });
   forthPrim('exit',   () => { exit(); });
   forthPrim('type',   () => { doType(); });
@@ -73,6 +75,7 @@ function forthPrims() {
   forthPrim('>b',     () => { tPush(varB); varB = pop(); });
   forthPrim('<b',     () => { varB = tPop(); });
   forthPrim('1+',     () => { ++mem[dsp]; });
+  forthPrim('1-',     () => { --mem[dsp]; });
   forthPrim('timer',  () => { push(performance.now()); });
   forthPrim('here',   () => { push(here); });
   forthPrim('load',   () => { t=pop(); doLoad(t); });
@@ -136,6 +139,7 @@ function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
 function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } return true; }
 function isWS()      { return tib.charCodeAt(toIn) < 33; }
+function initFunc(f) { forthInitFuncs.push(f); }
 
 function addWord(name, immediate = false) {
   dict[++last] = { len: name.length, name: name, xt: here, imm: immediate };
@@ -304,6 +308,9 @@ function runForth(src, logCmd = true, logOutput = true) {
 window.addEventListener('load', async ()=>{              // load event handler
     let slst = document.getElementsByTagName('script')   // get scripts
     forthPrims();
+    initGraphics();
+    for (let f of forthInitFuncs) { f(); }
+    if (typeof registerDemoWords === 'function') { registerDemoWords(); }
     for (let i=0; i<slst.length; i++) {
         let s = slst[i]
         if (s.type != 'application/forth') continue;     // handle embedded Forth 
@@ -327,45 +334,55 @@ let theCanvas = null;
 let theCtx = null;
 let sprites = [];  // Sprite storage: index -> Image object
 
-function initGraphics(canvas) {
+function initGraphics(canvas = undefined) {
+  if (!canvas) { canvas = document.getElementById('the-canvas'); }
+  if (!canvas) { return }
   theCanvas = canvas;
   theCtx = canvas.getContext('2d');
+  registerGraphicsWords();
 }
 
-function spriteAt(x) { return (0 <= x) && (x < sprites.length) ? sprites[x] : null; }
+function resizeCanvas(w, h) { theCanvas.width = w; theCanvas.height = h; }
+function setFillStyle(r, g, b) { theCtx.fillStyle = `rgb(${r},${g},${b})`; }
+function setStrokeStyle(r, g, b) { theCtx.strokeStyle = `rgb(${r},${g},${b})`; }
+function fillRect(x, y, w, h) { theCtx.fillRect(x, y, w, h); }
+function strokeRect(x, y, w, h) { theCtx.strokeRect(x, y, w, h); }
+function spriteAt(x) { return sprites[x]; }
 
 function registerGraphicsWords() {
-  forthPrim('canvas-width', () => { push(theCanvas.width); });
-  forthPrim('canvas-height', () => { push(theCanvas.height); });
-  
+  forthPrim('canvas-width',   () => { push(theCanvas.width); });
+  forthPrim('canvas-height',  () => { push(theCanvas.height); });
   forthPrim('canvas-width!',  () => { theCanvas.width = pop(); });
   forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
-  forthPrim('resize-canvas',  () => {
-    theCanvas.width = pop();
-    theCanvas.height = pop();
-  });
-  
-  forthPrim('clear', () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
-  forthPrim('color', () => { 
-    let b=pop(), g=pop(), r=pop(); 
-    theCtx.fillStyle = `rgb(${r},${g},${b})`;
-  });
-  forthPrim('stroke', () => { 
-    let b=pop(), g=pop(), r=pop(); 
-    theCtx.strokeStyle = `rgb(${r},${g},${b})`;
-  });
-  forthPrim('fill-alpha', () => { theCtx.globalAlpha = pop() / 255; });
-  forthPrim('line-width', () => { theCtx.lineWidth = pop(); });
-  
-  forthPrim('rect', () => { 
-    let h=pop(), w=pop(), y=pop(), x=pop(); 
-    theCtx.fillRect(x, y, w, h); 
-  });
-  forthPrim('rect-stroke', () => { 
-    let h=pop(), w=pop(), y=pop(), x=pop(); 
-    theCtx.strokeRect(x, y, w, h); 
-  });
-  forthPrim('circle', () => { 
+  forthPrim('resize-canvas',  () => { w=pop(), h=pop(); resizeCanvas(w, h); });
+  forthPrim('clear',          () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
+  forthPrim('color',          () => { b=pop(), g=pop(), r=pop(); setFillStyle(r, g, b); });
+  forthPrim('stroke',         () => { b=pop(), g=pop(), r=pop(); setStrokeStyle(r, g, b); });
+  forthPrim('fill-alpha',     () => { theCtx.globalAlpha = pop() / 255; });
+  forthPrim('line-width',     () => { theCtx.lineWidth = pop(); });
+  forthPrim('rect',           () => { h=pop(), w=pop(), y=pop(), x=pop(); fillRect(x, y, w, h); });
+  forthPrim('rect-stroke',    () => { h=pop(), w=pop(), y=pop(), x=pop(); strokeRect(x, y, w, h); });
+  forthPrim('pi',             () => { push(Math.PI); });
+  forthPrim('pixel',          () => { y=pop(); x=pop(); theCtx.fillRect(x, y, 1, 1); });
+  forthPrim('move-to',        () => { y=pop(); x=pop(); theCtx.moveTo(x, y); });
+  forthPrim('line-to',        () => { y=pop(); x=pop(); theCtx.lineTo(x, y); });
+  forthPrim('begin-path',     () => { theCtx.beginPath(); });
+  forthPrim('stroke-path',    () => { theCtx.stroke(); });
+  forthPrim('fill-path',      () => { theCtx.fill(); });
+  forthPrim('close-path',     () => { theCtx.closePath(); });
+  forthPrim('save-state',     () => { theCtx.save(); });
+  forthPrim('restore-state',  () => { theCtx.restore(); });
+  forthPrim('translate',      () => { y=pop(); x=pop(); theCtx.translate(x, y); });
+  forthPrim('rotate',         () => { angle=pop(); theCtx.rotate(angle); });
+  forthPrim('scale',          () => { y=pop(); x=pop(); theCtx.scale(x, y); });
+  forthPrim('font',           () => { theCtx.font = pop(); });
+  forthPrim('text',           () => { y=pop(); x=pop(); s=pop(); theCtx.fillText(s, x, y); });
+  forthPrim('text-stroke',    () => { y=pop(); x=pop(); s=pop(); theCtx.strokeText(s, x, y); });
+  forthPrim('sprite-width',   () => { s = sprites[pop()]; push(s ? s.width : 0); });
+  forthPrim('sprite-height',  () => { s = sprites[pop()]; push(s ? s.height : 0); });
+  forthPrim('redraw',         () => { needsRedraw = true; });
+  forthPrim('redraw?',        () => { push(needsRedraw ? -1 : 0); });
+  forthPrim('circle',         () => { 
     let r=pop(), y=pop(), x=pop(); 
     theCtx.beginPath();
     theCtx.arc(x, y, r, 0, Math.PI * 2);
@@ -377,41 +394,17 @@ function registerGraphicsWords() {
     theCtx.arc(x, y, r, 0, Math.PI * 2);
     theCtx.stroke();
   });
-  
-  forthPrim('pi',            () => { push(Math.PI); });
-  forthPrim('pixel',         () => { y=pop(); x=pop(); theCtx.fillRect(x, y, 1, 1); });
-  forthPrim('move-to',       () => { y=pop(); x=pop(); theCtx.moveTo(x, y); });
-  forthPrim('line-to',       () => { y=pop(); x=pop(); theCtx.lineTo(x, y); });
-  forthPrim('begin-path',    () => { theCtx.beginPath(); });
-  forthPrim('stroke-path',   () => { theCtx.stroke(); });
-  forthPrim('fill-path',     () => { theCtx.fill(); });
-  forthPrim('close-path',    () => { theCtx.closePath(); });
-  forthPrim('save-state',    () => { theCtx.save(); });
-  forthPrim('restore-state', () => { theCtx.restore(); });
-  forthPrim('translate',     () => { y=pop(); x=pop(); theCtx.translate(x, y); });
-  forthPrim('rotate',        () => { angle=pop(); theCtx.rotate(angle); });
-  forthPrim('scale',         () => { y=pop(); x=pop(); theCtx.scale(x, y); });
-  forthPrim('font',          () => { theCtx.font = pop(); });
-  forthPrim('text',          () => { y=pop(); x=pop(); s=pop(); theCtx.fillText(s, x, y); });
-  forthPrim('text-stroke',   () => { y=pop(); x=pop(); s=pop(); theCtx.strokeText(s, x, y); });
-  forthPrim('sprite-width',  () => { s = spriteAt(pop()); push(s ? s.width : 0); });
-  forthPrim('sprite-height', () => { s = spriteAt(pop()); push(s ? s.height : 0); });
-  forthPrim('redraw',        () => { needsRedraw = true; });
-  forthPrim('redraw?',       () => { push(needsRedraw ? -1 : 0); });
-  
   forthPrim('image-data', () => { 
     let h=pop(), w=pop(), y=pop(), x=pop();
     let imgData = theCtx.getImageData(x, y, w, h);
     // Store in temp stack for further manipulation
     tPush(imgData);
   });
-
   forthPrim('put-image-data', () => {
     let y=pop(), x=pop();
     let imgData = tPop();
     theCtx.putImageData(imgData, x, y);
   });
-  
   forthPrim('load-sprite', () => {
     let img = new Image();
     img.src = pop();
@@ -419,25 +412,14 @@ function registerGraphicsWords() {
     sprites.push(img);
     push(spriteIdx);  // Return sprite index
   });
-  
   forthPrim('draw-sprite', () => {
-    let spriteIdx = pop(), y = pop(), x = pop();
-    let sprite = spriteAt(spriteIdx);
-    if (sprite) {
-      if (sprite.complete) {  // Check if image is loaded
-        theCtx.drawImage(sprite, x, y);
-      }
-    }
+    let y = pop(), x = pop(), sprite = sprites[pop()];
+    if (sprite?.complete) { theCtx.drawImage(sprite, x, y); }
   });
-  
   forthPrim('draw-sprite-scaled', () => {
-    let h = pop(), w = pop(), spriteIdx = pop(), y = pop(), x = pop();
-    let sprite = spriteAt(spriteIdx);
-    if (sprite) {
-      if (sprite.complete) {
-        theCtx.drawImage(sprite, x, y, w, h);
-      }
-    }
+    let h = pop(), w = pop(), y = pop(), x = pop();
+    let sprite = sprites[pop()];
+    if (sprite?.complete) { theCtx.drawImage(sprite, x, y, w, h); }
   });
 }
 
@@ -621,6 +603,7 @@ blocks[1] = `( Utility and benchmark words )
 
 blocks[2] = `( Geometry words )
 : deg>rad  ( deg--rad )  pi * 180 / ;
+: rad>deg  ( rad--deg )  180 * pi / ;
 : squared  ( n-- n1 )    dup * ;
 : area     ( r--n )      squared pi * ;
 : diameter ( r--n )      dup + ;

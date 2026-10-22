@@ -128,30 +128,32 @@ outer('10 2 / .');    // Outputs: 5
 
 - Stack effects use `( i--o )` to separate inputs from outputs.
 - True comparison results are `-1`; false results are `0`.
+- Numeric values can be either integer or floating point unless specified.
 
 | Name               | Stack                  | Description|
 |--------------------|------------------------|--------------------------------------------------|
-| dup                | ( n--n n )             | Duplicate the top item.|
-| drop               | ( n-- )                | Remove the top item.|
+| dup                | ( n--n n )             | Duplicate TOS.|
+| drop               | ( n-- )                | Remove TOS.|
 | swap               | ( a b--b a )           | Exchange the top two items.|
 | over               | ( a b--a b a )         | Copy NOS to the top.|
 | .s                 | ( -- )                 | Display the data stack without removing items.|
 | +                  | ( a b--result )        | Add two values.|
 | -                  | ( a b--result )        | Subtract TOS value from NOS.|
 | *                  | ( a b--result )        | Multiply two values.|
-| /                  | ( a b--result )        | Divide using JavaScript /; division is not truncated.|
-| negate             | ( n---n )              | Negate the top item.|
-| /mod               | ( a b--quot rem )      | Divide and modulo.|
-| mod/               | ( a b--rem quot )      | Modulo and divide.|
+| /                  | ( a b--result )        | Division (float, not truncated).|
+| negate             | ( n---n )              | Negate TOS.|
+| /mod               | ( a b--quot rem )      | Integer divide and modulo.|
+| mod/               | ( a b--rem quot )      | Integer modulo and divide.|
 | <                  | ( a b--flag )          | Compare whether the NOS is less than TOS.|
 | =                  | ( a b--flag )          | Compare whether NOS and TOS are equal.|
 | >                  | ( a b--flag )          | Compare whether NOS is greater than TOS.|
-| 0=                 | ( n--flag )            | Test whether the top item is zero.|
-| 1+                 | ( n--n+1 )             | Increment the top item.|
-| and                | ( a b--result )        | Bitwise AND of the top two values.|
-| or                 | ( a b--result )        | Bitwise OR of the top two values.|
-| xor                | ( a b--result )        | Bitwise XOR of the top two values.|
-| com                | ( n--result )          | Bitwise complement of the top item.|
+| 0=                 | ( n--flag )            | Test whether TOS is zero.|
+| 1+                 | ( n--n+1 )             | Increment TOS.|
+| 1-                 | ( n--n-1 )             | Decrement NOS.|
+| and                | ( a b--result )        | Bitwise AND of NOS and TOS.|
+| or                 | ( a b--result )        | Bitwise OR of NOS and TOS.|
+| xor                | ( a b--result )        | Bitwise XOR of NOS and TOS.|
+| com                | ( n--result )          | Bitwise complement of TOS.|
 | @                  | ( addr--value )        | Fetch a memory cell.|
 | !                  | ( value addr-- )       | Store a value at an address.|
 | ,                  | ( n-- )                | Compile a value at the current here address.|
@@ -162,14 +164,15 @@ outer('10 2 / .');    // Outputs: 5
 | emit               | ( char-code-- )        | Print the character for a character code.|
 | html!              | ( value id-str-- )     | Set an element's textContent.|
 | s"                 | ( -- )                 | Compile or push a string.|
-| ."                 | ( -- )                 | Compile or print a srting.|
+| ."                 | ( -- )                 | Compile or print a string.|
 | if ... then        | ( flag-- )             | Execute the body when the flag is nonzero.|
 | begin ... until    | ( flag-- )             | Jump to begin while the flag is zero.|
 | begin ... while    | ( flag-- )             | Jump to begin when the flag is nonzero.|
 | begin ... again    | ( -- )                 | Unconditionally jump back to begin.|
 | for ... next       | ( n-- )                | Run the body the specified number of times.|
 | i                  | ( --index )            | Push the current loop index, starting at zero.|
-| exit               | ( -- )                 | Return from the current word.|
+| unloop             | ( -- )                 | Reset to the previous loop context. Does NOT exit the loop.|
+| exit               | ( -- )                 | Exit from the current word.|
 | words              | ( -- )                 | Print the defined word names.|
 | see                | ( -- )                 | Read the next input word and print its definition.|
 | var                | ( -- )                 | Define the next word as a variable.|
@@ -239,8 +242,8 @@ outer('10 2 / .');    // Outputs: 5
 | image-data         | ( x y width height-- ) | Copy a canvas rectangle to the temporary stack.|
 | put-image-data     | ( x y-- )              | Put the saved image data at a position.|
 | load-sprite        | ( url-address--index ) | Load an image from a URL and push its sprite index.|
-| draw-sprite        | ( x y index-- )        | Draw a loaded sprite at native size.|
-| draw-sprite-scaled | ( x y index w hh-- )   | Draw a loaded sprite at a specified size.|
+| draw-sprite        | ( index x y-- )        | Draw a loaded sprite at native size.|
+| draw-sprite-scaled | ( index x y w h-- )    | Draw a loaded sprite at a specified size.|
 | sprite-width       | ( index--pixels )      | Push a sprite's loaded width.|
 | sprite-height      | ( index--pixels )      | Push a sprite's loaded height.|
 | redraw             | ( -- )                 | Request a redraw.|

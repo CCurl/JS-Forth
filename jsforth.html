@@ -47,23 +47,15 @@
       1 load  0 list
     </script>
     <script>
-      // Initialize graphics and register graphics Forth words
-      let theCanvasElement = document.getElementById('the-canvas');
-      if (theCanvasElement) {
-        initGraphics(theCanvasElement);
-        registerGraphicsWords();
-      }
-    </script>
-    <script>
       function execSelected() {
         var ta = document.getElementById('forth-hist');
         var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
         if (sel) runForth(sel);
       }
       function runCommand() {
-        var inp = document.getElementById('forth-input');
-        var ta = document.getElementById('forth-hist');
-        ta.value += inp.value + '\n';
+        var inp  = document.getElementById('forth-input');
+        var hist = document.getElementById('forth-hist');
+        hist.value += inp.value+'\n';
         runForth(inp.value);
         inp.value = '';
       }
