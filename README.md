@@ -126,122 +126,123 @@ Stack effects below use `--` to separate inputs from outputs. True comparison re
 ### Forth Word Reference
 
 Stack effects use `--` to separate inputs from outputs. True comparison results are `-1`; false results are `0`.
-| Name               | Stack                        | Description|
-|--------------------|------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| dup                | ( n--n n )                   | Duplicate the top item.|
-| drop               | ( n-- )                      | Remove the top item.|
-| swap               | ( a b--b a )                 | Exchange the top two items.|
-| over               | ( a b--a b a )               | Copy the second item to the top.|
-| .s                 | ( -- )                       | Display the data stack without removing items.|
-| +                  | ( a b--result )              | Add two values.|
-| -                  | ( a b--result )              | Subtract the second value from the first.|
-| *                  | ( a b--result )              | Multiply two values.|
-| /                  | ( a b--result )              | Divide using JavaScript /; division is not truncated.|
-| negate             | ( n---n )                    | Negate the top item.|
-| /mod               | ( a b--quotient remainder )  | Divide and modulo.|
-| mod/               | ( a b--remainder quotient )  | Modulo and divide.|
-| <                  | ( a b--flag )                | Compare whether the first value is less than the second.|
-| =                  | ( a b--flag )                | Compare whether two values are equal.|
-| >                  | ( a b--flag )                | Compare whether the first value is greater than the second.|
-| 0=                 | ( n--flag )                  | Test whether the top item is zero.|
-| 1+                 | ( n--n+1 )                   | Increment the top item.|
-| and                | ( a b--result )              | Bitwise AND of the top two values.|
-| or                 | ( a b--result )              | Bitwise OR of the top two values.|
-| xor                | ( a b--result )              | Bitwise XOR of the top two values.|
-| com                | ( n--result )                | Bitwise complement of the top item.|
-| @                  | ( addr--value )              | Fetch a memory cell.|
-| !                  | ( value addr-- )             | Store a value at an address.|
-| ,                  | ( n-- )                      | Compile a value at the current here address.|
-| here               | ( --addr )                   | Push the current compilation address.|
-| allot              | ( n-- )                      | Allocate memory by incrementing here by `n`.|
-| .                  | ( n-- )                      | Print TOS; numeric values are followed by a space.|
-| type               | ( str-- )                    | Print and remove a string.|
-| emit               | ( char-code-- )              | Print the character for a character code.|
-| html!              | ( value id-str-- )           | Set an element's textContent.|
-| s"                 | ( -- )                       | Compile or push a string.|
-| ."                 | ( -- )                       | Compile or print a srting.|
-| if ... then        | ( flag-- )                   | Execute the body when the flag is nonzero.|
-| begin ... until    | ( flag-- )                   | Jump to begin while the flag is zero.|
-| begin ... while    | ( flag-- )                   | Jump to begin when the flag is nonzero.|
-| begin ... again    | ( -- )                       | Unconditionally jump back to begin.|
-| for ... next       | ( n-- )                      | Run the body the specified number of times.|
-| i                  | ( --index )                  | Push the current loop index, starting at zero.|
-| exit               | ( -- )                       | Return from the current word.|
-| words              | ( -- )                       | Print the defined word names.|
-| see                | ( -- )                       | Read the next input word and print its definition.|
-| var                | ( -- )                       | Define the next word as a variable.|
-| const              | ( n-- )                      | Define the next word as a constant for `n`.|
-| immediate          | ( -- )                       | Mark the most recently defined word as immediate.|
-| load               | ( block-num-- )              | Execute a stored block.|
-| list               | ( block-num-- )              | Display a stored block in the UI textarea.|
-| a@                 | ( --val )                    | Push the value of variable a.|
-| b@                 | ( --val )                    | Push the value of variable b.|
-| a!                 | ( val-- )                    | Store the top value in variable a.|
-| b!                 | ( val-- )                    | Store the top value in variable b.|
-| >a                 | ( val-- )                    | Save a and set a to `val`.|
-| >b                 | ( val-- )                    | Save b and set b to `val`.|
-| <a                 | ( -- )                       | Restore variable a's previous value.|
-| <b                 | ( -- )                       | Restore variable b's previous value.|
-| >t                 | ( val-- )                    | Move the TOS to the temporary stack.|
-| t@                 | ( --val )                    | Copy the temporary stack's top value to the data stack.|
-| t!                 | ( val-- )                    | Set the temporary stack's top value to `val`.|
-| t>                 | ( --val )                    | Pop the temporary stack onto the data stack.|
-| <t                 | ( -- )                       | Pop and discard from the temporary stack.|
-| timer              | ( --time )                   | Push the current high-precision time.|
-| sin                | ( radians--result )          | Push the sine of an angle in radians.|
-| cos                | ( radians--result )          | Push the cosine of an angle in radians.|
-| base@              | ( --base )                   | Get the current number base (default 10).|
-| base!              | ( base-- )                   | Set the current number base.|
-| state@             | ( --state )                  | Get the compilation state (0=execute, 1=compile).|
-| state!             | ( state-- )                  | Set the compilation state (0=execute, 1=compile).|
-| ttl-fw             | ( distance-- )               | Move forward by a distance, drawing when the pen is down.|
-| ttl-rt             | ( angle-- )                  | Turn right by an angle in degrees.|
-| ttl-lt             | ( angle-- )                  | Turn left by an angle in degrees.|
-| pen-up             | ( -- )                       | Lift the pen.|
-| pen-down           | ( -- )                       | Lower the pen.|
-| pen-color          | ( r g b-- )                  | Set the pen (stroke) color.|
-| ttl-goto           | ( x y-- )                    | Move to X/Y, drawing if the pen is down.|
-| ttl-square         | ( size-- )                   | Draw a square of the given side length.|
-| ttl-home           | ( -- )                       | Return to the canvas center and reset heading.|
-| canvas-width       | ( --n )                      | Push the canvas width.|
-| canvas-height      | ( --n )                      | Push the canvas height.|
-| canvas-width!      | ( n-- )                      | Set the canvas width.|
-| canvas-height!     | ( n-- )                      | Set the canvas height.|
-| resize-canvas      | ( width height-- )           | Set width and height.|
-| clear              | ( -- )                       | Clear the canvas.|
-| color              | ( r g b-- )                  | Set fill color.|
-| stroke             | ( r g b-- )                  | Set line/stroke color.|
-| fill-alpha         | ( alpha-- )                  | Set global alpha from 0 to 255.|
-| line-width         | ( pixels-- )                 | Set stroke width.|
-| rect               | ( x y width height-- )       | Fill a rectangle.|
-| rect-stroke        | ( x y width height-- )       | Outline a rectangle.|
-| circle             | ( x y radius-- )             | Fill a circle.|
-| circle-stroke      | ( x y radius-- )             | Outline a circle.|
-| pi                 | ( --pi )                     | Push the value of pi.|
-| move-to            | ( x y-- )                    | Set the current path point.|
-| line-to            | ( x y-- )                    | Add a line to the current path.|
-| begin-path         | ( -- )                       | Begin a new path.|
-| stroke-path        | ( -- )                       | Stroke the current path.|
-| fill-path          | ( -- )                       | Fill the current path.|
-| close-path         | ( -- )                       | Close the current path.|
-| pixel              | ( x y-- )                    | Draw one pixel.|
-| save-state         | ( -- )                       | Save the canvas drawing state.|
-| restore-state      | ( -- )                       | Restore the previously saved canvas drawing state.|
-| translate          | ( x y-- )                    | Translate the canvas.|
-| rotate             | ( angle-- )                  | Rotate in radians.|
-| scale              | ( scale-x scale-y-- )        | Scale the canvas.|
-| font               | ( str-- )                    | Set the canvas font.|
-| text               | ( str x y-- )                | Fill text at a position.|
-| text-stroke        | ( str x y-- )                | Outline text at a position.|
-| image-data         | ( x y width height-- )       | Copy a canvas rectangle to the temporary stack.|
-| put-image-data     | ( x y-- )                    | Put the saved image data at a position.|
-| load-sprite        | ( url-address--index )       | Load an image from a URL and push its sprite index.|
-| draw-sprite        | ( x y index-- )              | Draw a loaded sprite at native size.|
-| draw-sprite-scaled | ( x y index w hh-- )         | Draw a loaded sprite at a specified size.|
-| sprite-width       | ( index--pixels )            | Push a sprite's loaded width.|
-| sprite-height      | ( index--pixels )            | Push a sprite's loaded height.|
-| redraw             | ( -- )                       | Request a redraw.|
-| redraw?            | ( --flag )                   | Push true (-1) when a redraw is pending, otherwise false (0).|
+
+| Name               | Stack                  | Description|
+|--------------------|------------------------|--------------------------------------------------|
+| dup                | ( n--n n )             | Duplicate the top item.|
+| drop               | ( n-- )                | Remove the top item.|
+| swap               | ( a b--b a )           | Exchange the top two items.|
+| over               | ( a b--a b a )         | Copy NOS to the top.|
+| .s                 | ( -- )                 | Display the data stack without removing items.|
+| +                  | ( a b--result )        | Add two values.|
+| -                  | ( a b--result )        | Subtract TOS value from NOS.|
+| *                  | ( a b--result )        | Multiply two values.|
+| /                  | ( a b--result )        | Divide using JavaScript /; division is not truncated.|
+| negate             | ( n---n )              | Negate the top item.|
+| /mod               | ( a b--quot rem )      | Divide and modulo.|
+| mod/               | ( a b--rem quot )      | Modulo and divide.|
+| <                  | ( a b--flag )          | Compare whether the NOS is less than TOS.|
+| =                  | ( a b--flag )          | Compare whether NOS and TOS are equal.|
+| >                  | ( a b--flag )          | Compare whether NOS is greater than TOS.|
+| 0=                 | ( n--flag )            | Test whether the top item is zero.|
+| 1+                 | ( n--n+1 )             | Increment the top item.|
+| and                | ( a b--result )        | Bitwise AND of the top two values.|
+| or                 | ( a b--result )        | Bitwise OR of the top two values.|
+| xor                | ( a b--result )        | Bitwise XOR of the top two values.|
+| com                | ( n--result )          | Bitwise complement of the top item.|
+| @                  | ( addr--value )        | Fetch a memory cell.|
+| !                  | ( value addr-- )       | Store a value at an address.|
+| ,                  | ( n-- )                | Compile a value at the current here address.|
+| here               | ( --addr )             | Push the current compilation address.|
+| allot              | ( n-- )                | Allocate memory by incrementing here by `n`.|
+| .                  | ( n-- )                | Print TOS; numeric values are followed by a space.|
+| type               | ( str-- )              | Print and remove a string.|
+| emit               | ( char-code-- )        | Print the character for a character code.|
+| html!              | ( value id-str-- )     | Set an element's textContent.|
+| s"                 | ( -- )                 | Compile or push a string.|
+| ."                 | ( -- )                 | Compile or print a srting.|
+| if ... then        | ( flag-- )             | Execute the body when the flag is nonzero.|
+| begin ... until    | ( flag-- )             | Jump to begin while the flag is zero.|
+| begin ... while    | ( flag-- )             | Jump to begin when the flag is nonzero.|
+| begin ... again    | ( -- )                 | Unconditionally jump back to begin.|
+| for ... next       | ( n-- )                | Run the body the specified number of times.|
+| i                  | ( --index )            | Push the current loop index, starting at zero.|
+| exit               | ( -- )                 | Return from the current word.|
+| words              | ( -- )                 | Print the defined word names.|
+| see                | ( -- )                 | Read the next input word and print its definition.|
+| var                | ( -- )                 | Define the next word as a variable.|
+| const              | ( n-- )                | Define the next word as a constant for `n`.|
+| immediate          | ( -- )                 | Mark the most recently defined word as immediate.|
+| load               | ( block-num-- )        | Execute a stored block.|
+| list               | ( block-num-- )        | Display a stored block in the UI textarea.|
+| a@                 | ( --val )              | Push the value of variable a.|
+| b@                 | ( --val )              | Push the value of variable b.|
+| a!                 | ( val-- )              | Store the TOS in variable a.|
+| b!                 | ( val-- )              | Store the TOS in variable b.|
+| >a                 | ( val-- )              | Save a and set a to `val`.|
+| >b                 | ( val-- )              | Save b and set b to `val`.|
+| <a                 | ( -- )                 | Restore variable a's previous value.|
+| <b                 | ( -- )                 | Restore variable b's previous value.|
+| >t                 | ( val-- )              | Move the TOS to the temporary stack.|
+| t@                 | ( --val )              | Copy the temporary stack's TOS to the data stack.|
+| t!                 | ( val-- )              | Set the temporary stack's TOS to `val`.|
+| t>                 | ( --val )              | Pop the temporary stack onto the data stack.|
+| <t                 | ( -- )                 | Pop and discard from the temporary stack.|
+| timer              | ( --time )             | Push the current high-precision time.|
+| sin                | ( radians--result )    | Push the sine of an angle in radians.|
+| cos                | ( radians--result )    | Push the cosine of an angle in radians.|
+| base@              | ( --base )             | Get the current number base (default 10).|
+| base!              | ( base-- )             | Set the current number base.|
+| state@             | ( --state )            | Get the compilation state (0=execute, 1=compile).|
+| state!             | ( state-- )            | Set the compilation state (0=execute, 1=compile).|
+| ttl-fw             | ( distance-- )         | Move forward, drawing when the pen is down.|
+| ttl-rt             | ( angle-- )            | Turn right by an angle in degrees.|
+| ttl-lt             | ( angle-- )            | Turn left by an angle in degrees.|
+| pen-up             | ( -- )                 | Lift the pen.|
+| pen-down           | ( -- )                 | Lower the pen.|
+| pen-color          | ( r g b-- )            | Set the pen (stroke) color.|
+| ttl-goto           | ( x y-- )              | Move to X/Y, drawing if the pen is down.|
+| ttl-square         | ( size-- )             | Draw a square of the given side length.|
+| ttl-home           | ( -- )                 | Return to the canvas center and reset heading.|
+| canvas-width       | ( --n )                | Push the canvas width.|
+| canvas-height      | ( --n )                | Push the canvas height.|
+| canvas-width!      | ( n-- )                | Set the canvas width.|
+| canvas-height!     | ( n-- )                | Set the canvas height.|
+| resize-canvas      | ( width height-- )     | Set width and height.|
+| clear              | ( -- )                 | Clear the canvas.|
+| color              | ( r g b-- )            | Set fill color.|
+| stroke             | ( r g b-- )            | Set line/stroke color.|
+| fill-alpha         | ( alpha-- )            | Set global alpha from 0 to 255.|
+| line-width         | ( pixels-- )           | Set stroke width.|
+| rect               | ( x y width height-- ) | Fill a rectangle.|
+| rect-stroke        | ( x y width height-- ) | Outline a rectangle.|
+| circle             | ( x y radius-- )       | Fill a circle.|
+| circle-stroke      | ( x y radius-- )       | Outline a circle.|
+| pi                 | ( --pi )               | Push the value of pi.|
+| move-to            | ( x y-- )              | Set the current path point.|
+| line-to            | ( x y-- )              | Add a line to the current path.|
+| begin-path         | ( -- )                 | Begin a new path.|
+| stroke-path        | ( -- )                 | Stroke the current path.|
+| fill-path          | ( -- )                 | Fill the current path.|
+| close-path         | ( -- )                 | Close the current path.|
+| pixel              | ( x y-- )              | Draw one pixel.|
+| save-state         | ( -- )                 | Save the canvas drawing state.|
+| restore-state      | ( -- )                 | Restore the previously saved canvas drawing state.|
+| translate          | ( x y-- )              | Translate the canvas.|
+| rotate             | ( angle-- )            | Rotate in radians.|
+| scale              | ( scale-x scale-y-- )  | Scale the canvas.|
+| font               | ( str-- )              | Set the canvas font.|
+| text               | ( str x y-- )          | Fill text at a position.|
+| text-stroke        | ( str x y-- )          | Outline text at a position.|
+| image-data         | ( x y width height-- ) | Copy a canvas rectangle to the temporary stack.|
+| put-image-data     | ( x y-- )              | Put the saved image data at a position.|
+| load-sprite        | ( url-address--index ) | Load an image from a URL and push its sprite index.|
+| draw-sprite        | ( x y index-- )        | Draw a loaded sprite at native size.|
+| draw-sprite-scaled | ( x y index w hh-- )   | Draw a loaded sprite at a specified size.|
+| sprite-width       | ( index--pixels )      | Push a sprite's loaded width.|
+| sprite-height      | ( index--pixels )      | Push a sprite's loaded height.|
+| redraw             | ( -- )                 | Request a redraw.|
+| redraw?            | ( --flag )             | Push true (-1) when a redraw is pending, otherwise false (0).|
 
 ## Implementation Details
 
