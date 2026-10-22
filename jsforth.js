@@ -61,6 +61,7 @@ function forthPrims() {
   forthPrim('const',  () => { doConst(); });
   forthPrim('>t',     () => { tPush(pop()); });
   forthPrim('t@',     () => { push(mem[tsp]); });
+  forthPrim('t!',     () => { mem[tsp] = pop(); });
   forthPrim('t>',     () => { push(tPop()); });
   forthPrim('<t',     () => { tPop(); });
   forthPrim('a@',     () => { push(varA); });
@@ -612,8 +613,6 @@ blocks[0] = `block | Description
    2  | Geometry
   10  | Turtle graphics support
   11  | Turtle graphics documentation
-  20  | Doom Demo words
-  21  | Doom Demo documentation
 `;
 
 blocks[1] = `( Utility and benchmark words )
@@ -671,46 +670,15 @@ blocks[11] = `( Turtle graphics documentation )
 ttl-x      ( --addr )  x-coordinate of turtle
 ttl-y      ( --addr )  y-coordinate of turtle
 ttl-angle  ( --addr )  heading of turtle in degrees
-pen-color  ( r g b-- ) pen color
-pen-state  ( --addr )  pen state (0 => up, -1 => down)
-pen-up     ( -- )      put pen up
-pen-down   ( -- )      put pen down
-pen-down?  ( --f )     check if pen is down
-ttl-goto   ( x y-- )   goto to position (x, y), with pen
+ttl-goto   ( x y-- )   goto to (x, y), with pen check
 ttl-fw     ( dst-- )   move forward
-ttl-rt     ( deg-- )   turn right
+ttl-rt     ( deg-- )   turn right 
 ttl-lt     ( deg-- )   turn left
 ttl-home   ( -- )      move to home position (canvas center)
 ttl-square ( size-- )  draw a square
-`;
-
-// *********************************************************************************
- // Demo words
-blocks[20] = `( Doom-O words )
-: go game-go redraw ."  Running!" 21 list ;
-: stop game-stop ."  Stopped!" ;
-: update game-frame ;
-: hkey ( n -- ) ( Handle Keys )
-    2 mod/ if mF then ( fwd )
-    2 mod/ if mL then ( left )
-    2 mod/ if mB then ( back )
-    2 mod/ if mR then ( right )
-    2 mod/ if tL then ( turn left )
-    1 and  if tR then ( turn right )
-    redraw ;
-`;
-
-blocks[21] = `( Doom-O Documentation )
-( Keyboard controls: WASD to move, JK to turn, ESC to stop )
-( game-go      -- Initialize and start the game )
-( game-stop    -- Stop the game and return to Forth )
-( game-pause   -- Pause the game (ignore input) )
-( game-resume  -- Resume from pause )
-( game-paused? -- Check if game is paused )
-( mF           -- Move forward )
-( mB           -- Move backward )
-( mL           -- Move left )
-( mR           -- Move right )
-( tL           -- Turn left )
-( tR           -- Turn right )
+pen-color  ( r g b-- ) set pen color
+pen-state  ( --addr )  pen state (0 => up, -1 => down)
+pen-up     ( -- )      lift pen up (not drawing)
+pen-down   ( -- )      put pen down (drawing)
+pen-down?  ( --f )     f: TRUE (-1) if pen is down
 `;

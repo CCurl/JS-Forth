@@ -154,15 +154,50 @@ function handleGameLogic() {
   // There is no game logic ... yet
 }
 
-forthPrim('game-go',    () => { raycastInit(); });
-forthPrim('game-stop',  () => { theGame.running = false; });
-forthPrim('game-pause', () => { theGame.paused = true; });
-forthPrim('game-resume',() => { theGame.paused = false; });
+forthPrim('game-go',      () => { raycastInit(); });
+forthPrim('game-stop',    () => { theGame.running = false; });
+forthPrim('game-pause',   () => { theGame.paused = true; });
+forthPrim('game-resume',  () => { theGame.paused = false; });
 forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
-forthPrim('game-frame', () => { renderRaycastFrame(); });
-forthPrim('mF', () => { moveForward(); });
-forthPrim('mB', () => { moveBackward(); });
-forthPrim('mL', () => { moveLeft(); });
-forthPrim('mR', () => { moveRight(); });
-forthPrim('tL', () => { turnLeft(); });
-forthPrim('tR', () => { turnRight(); });
+forthPrim('game-frame',   () => { renderRaycastFrame(); });
+forthPrim('move-fwd',     () => { moveForward(); });
+forthPrim('move-back',    () => { moveBackward(); });
+forthPrim('move-left',    () => { moveLeft(); });
+forthPrim('move-right',   () => { moveRight(); });
+forthPrim('turn-left',    () => { turnLeft(); });
+forthPrim('turn-right',   () => { turnRight(); });
+
+
+// *********************************************************************************
+ // Demo words
+ blocks[0] += `  20  | Doom Demo words
+  21  | Doom Demo documentation
+`;
+  blocks[20] = `( Doom-O words )
+: go game-go redraw ."  Running!" 21 list ;
+: stop game-stop ."  Stopped!" ;
+: update game-frame ;
+: hkey ( n -- ) ( Handle Keys )
+    2 mod/ if move-fwd   then
+    2 mod/ if move-left  then
+    2 mod/ if move-back  then
+    2 mod/ if move-right then
+    2 mod/ if turn-left  then
+    1 and  if turn-right then
+    redraw ;
+`;
+
+blocks[21] = `Doom-O Documentation
+Keyboard controls: WASD to move, JK to turn, ESC to stop
+game-go      ( -- )  Initialize and start the game
+game-stop    ( -- )  Stop the game and return to Forth
+game-pause   ( -- )  Pause the game (ignore input)
+game-resume  ( -- )  Resume from pause
+game-paused? ( --f ) Check if game is paused
+move-fwd     ( -- )  Move forward
+move-back    ( -- )  Move backward
+move-left    ( -- )  Move left
+move-right   ( -- )  Move right
+turn-left    ( -- )  Turn left
+turn-right   ( -- )  Turn right
+`;
