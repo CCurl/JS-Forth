@@ -203,8 +203,8 @@ outer('10 2 / .');    // Outputs: 5
 | ttl-fw             | ( distance-- )         | Move forward, drawing when the pen is down.|
 | ttl-rt             | ( angle-- )            | Turn right by an angle in degrees.|
 | ttl-lt             | ( angle-- )            | Turn left by an angle in degrees.|
-| pen-up             | ( -- )                 | Lift the pen.|
-| pen-down           | ( -- )                 | Lower the pen.|
+| pen-up             | ( -- )                 | Lift the pen off the writing surface.|
+| pen-down           | ( -- )                 | Lower the pen onto the writing surface.|
 | pen-color          | ( r g b-- )            | Set the pen (stroke) color.|
 | ttl-goto           | ( x y-- )              | Move to X/Y, drawing if the pen is down.|
 | ttl-square         | ( size-- )             | Draw a square of the given side length.|
@@ -224,9 +224,9 @@ outer('10 2 / .');    // Outputs: 5
 | circle             | ( x y radius-- )       | Fill a circle.|
 | circle-stroke      | ( x y radius-- )       | Outline a circle.|
 | pi                 | ( --pi )               | Push the value of pi.|
+| begin-path         | ( -- )                 | Begin a new path.|
 | move-to            | ( x y-- )              | Set the current path point.|
 | line-to            | ( x y-- )              | Add a line to the current path.|
-| begin-path         | ( -- )                 | Begin a new path.|
 | stroke-path        | ( -- )                 | Stroke the current path.|
 | fill-path          | ( -- )                 | Fill the current path.|
 | close-path         | ( -- )                 | Close the current path.|
