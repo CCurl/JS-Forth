@@ -279,15 +279,13 @@ function outer(source) {
   tib = cTib, toIn = cIn, tibLen = cLen;
 }
 
+const outputBuffer = [];
 function runForth(src, logCmd = true, logOutput = true) {
   const origLog = console.log;
-  const lines = [];
   const input = src ?? '';
   if (logOutput) {
-    console.log = (...args) => lines.push(args.join(' '));
-    if (logCmd) {
-      console.log(`--> ${input}\n`);
-    }
+    console.log = (...args) => outputBuffer.push(args.join(' '));
+    if (logCmd) { console.log(`--> ${input}\n`); }
   }
   try {
     outer(input);
@@ -297,8 +295,9 @@ function runForth(src, logCmd = true, logOutput = true) {
   } finally {
     if (logOutput) {
       const output = document.getElementById('forth-output');
-      output.textContent += lines.join('') + " ok\n";
+      output.textContent += outputBuffer.join('') + " ok\n";
       output.scrollTop = output.scrollHeight;
+      outputBuffer.length = 0; // Clear the buffer
     }
     console.log = origLog;
   }
