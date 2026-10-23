@@ -608,6 +608,8 @@ blocks[2] = `( Geometry words )
 : area     ( r--n )      squared pi * ;
 : diameter ( r--n )      dup + ;
 : circumference ( r--n ) 2 * pi * ;
+: ft>mile ( ft--mi ) 5280 / ;
+: mile>ft ( mi--ft ) 5280 * ;
 `;
 
 // *********************************************************************************
