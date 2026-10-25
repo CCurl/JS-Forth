@@ -155,7 +155,7 @@ function handleGameLogic() {
 }
 
 initFunc(() => {
-  forthPrim('game-go',      () => { raycastInit(); });
+  forthPrim('game-go',      () => { raycastInit(); needsRedraw = true; });
   forthPrim('game-stop',    () => { theGame.running = false; });
   forthPrim('game-pause',   () => { theGame.paused = true; });
   forthPrim('game-resume',  () => { theGame.paused = false; });

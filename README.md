@@ -1,11 +1,11 @@
-# Forth.js - A Forth Interpreter in JavaScript
+# JS-Forth - A Forth Interpreter in JavaScript
 
-A minimal, efficient Forth interpreter that runs in the browser. Supports word definitions, arithmetic, stack operations, memory access, and can be embedded directly in HTML via `<script type="application/forth">` tags.
+A Forth interpreter that runs in the browser. Supports word definitions, arithmetic, stack operations, memory access, and can be embedded directly in HTML via `<script type="application/forth">` tags.
 
 ## Quick Start
-- Copy the 2 files: 'jsforth.html' and 'jsforth.js'.
+- Copy the 2 files: 'index.html' and 'jsforth.js'.
 - Paste them into a folder of your choice.
-- Open the 'jsforth.html' file in a browser of your choice.
+- Open the 'index.html' file in a browser of your choice.
 - NOTE: there is another file (doom-o.js) that demonstrates how to use ray-casting
 - Have fun!
 
@@ -29,7 +29,10 @@ This is a complete Forth virtual machine implemented in ~300 lines of JavaScript
   - Return Stack: base 60, grows upward (60-119)
   - Temp Stack: base 100, grows upward (100-169)
   - Loop Stack: base 170, grows upward (170-199)
-  - Compiled Code: starts at address 200
+  - BASE is at address 200
+  - STATE is at address 201
+  - Addresses 202-255 are free
+  - HERE (Compiled Code) starts at address 256
 - **Dictionary (`dictionary[]`)**: Array of word definitions with:
   - len: length of the word's name
   - name: name of the word
@@ -117,16 +120,16 @@ Embed Forth code directly in HTML using `type="application/forth"`:
 Call the interpreter directly from JavaScript:
 
 ```javascript
-// Single execution
+// Single execution (captures output via console.log override)
 runForth('5 3 + .');  // Outputs: 8
 
-// Direct parsing (captures output via console.log override)
+// Direct parsing
 outer('10 2 / .');    // Outputs: 5
 ```
 
 ### Forth Word Reference
 
-- Stack effects use `( i--o )` to separate inputs from outputs.
+- Stack effects use `( in--out )` to separate inputs from outputs.
 - True comparison results are `-1`; false results are `0`.
 - Numeric values can be either integer or floating point unless specified.
 
@@ -196,10 +199,8 @@ outer('10 2 / .');    // Outputs: 5
 | timer              | ( --time )             | Push the current high-precision time.|
 | sin                | ( radians--result )    | Push the sine of an angle in radians.|
 | cos                | ( radians--result )    | Push the cosine of an angle in radians.|
-| base@              | ( --base )             | Get the current number base (default 10).|
-| base!              | ( base-- )             | Set the current number base.|
-| state@             | ( --state )            | Get the compilation state (0=execute, 1=compile).|
-| state!             | ( state-- )            | Set the compilation state (0=execute, 1=compile).|
+| base               | ( --addr )             | Get the address of the `base` variabe.|
+| state              | ( --addr )             | Get the address of the `state` variable.|
 | ttl-fw             | ( distance-- )         | Move forward, drawing when the pen is down.|
 | ttl-rt             | ( angle-- )            | Turn right by an angle in degrees.|
 | ttl-lt             | ( angle-- )            | Turn left by an angle in degrees.|

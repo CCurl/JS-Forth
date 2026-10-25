@@ -1,14 +1,14 @@
 // jsforth.js - (c) 2026, Chris Curl, MIT license
 
-let mem = [], dict = [], blocks = [];
-let dstk = 0,   dsp = dstk, dse = 59;    // Data stack
-let rstk = 60,  rsp = rstk, rse = 119;   // Return stack
-let tstk = 100, tsp = tstk, tse = 169;   // Temp stack
-let lstk = 170, lsp = lstk, lse = 199;   // Loop stack
-let here = 200, last = -1, pc = -1, op, varA = 0, varB = 0;
+let mem = [], dict = [], blocks = [], forthInitFuncs = [];
+let dstk =   0, dse  =  59;   // Data stack
+let rstk =  60, rse  = 119;   // Return stack
+let tstk = 100, tse  = 169;   // Temp stack
+let lstk = 170, lse  = 199;   // Loop stack
+let base = 200, state = 201, here = 256
+let last = -1, pc = -1, op;
+let varA = 0, varB = 0, L0 = 0, L1 = 0, L2 = 0;
 let tib = '', wd = '', toIn = 0, tibLen = 0;
-let base = 10, state = 0, L0 = 0, L1 = 0, L2 = 0;
-let forthInitFuncs = [];
 
 // ***************************************************************
 // The bread and butter of this Forth
@@ -24,7 +24,9 @@ function inner(start) {
 }
 
 // ***************************************************************
-function forthPrims() {
+function initForth() {
+  mem[dstk] = dstk; mem[rstk] = rstk; mem[tstk] = tstk;
+  mem[lstk] = lstk; mem[base] = 10,   mem[state] = 0;
   forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
   forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
   forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
@@ -49,7 +51,7 @@ function forthPrims() {
   forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
   forthPrim(',',      () => { Comma(pop()); });
   forthPrim('.NWB',   () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
-  forthPrim('.',      () => { doNWB(pop(),0,base); type(' ');});
+  forthPrim('.',      () => { doNWB(pop(),0,mem[base]); type(' ');});
   forthPrim('for',    () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
   forthPrim('i',      () => { push(L0); });
   forthPrim('next',   () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
@@ -62,8 +64,8 @@ function forthPrims() {
   forthPrim('allot',  () => { here += pop(); });
   forthPrim('const',  () => { doConst(); });
   forthPrim('>t',     () => { tPush(pop()); });
-  forthPrim('t@',     () => { push(mem[tsp]); });
-  forthPrim('t!',     () => { mem[tsp] = pop(); });
+  forthPrim('t@',     () => { push(mem[mem[tstk]]); });
+  forthPrim('t!',     () => { mem[mem[tstk]] = pop(); });
   forthPrim('t>',     () => { push(tPop()); });
   forthPrim('<t',     () => { tPop(); });
   forthPrim('a@',     () => { push(varA); });
@@ -74,8 +76,8 @@ function forthPrims() {
   forthPrim('b!',     () => { varB = pop(); });
   forthPrim('>b',     () => { tPush(varB); varB = pop(); });
   forthPrim('<b',     () => { varB = tPop(); });
-  forthPrim('1+',     () => { ++mem[dsp]; });
-  forthPrim('1-',     () => { --mem[dsp]; });
+  forthPrim('1+',     () => { ++mem[mem[dstk]]; });
+  forthPrim('1-',     () => { --mem[mem[dstk]]; });
   forthPrim('timer',  () => { push(performance.now()); });
   forthPrim('here',   () => { push(here); });
   forthPrim('load',   () => { t=pop(); doLoad(t); });
@@ -84,37 +86,36 @@ function forthPrims() {
   forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
   forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
   forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
+  forthPrim('base',   () => { push(base); });
+  forthPrim('state',  () => { push(state); });
   forthPrim('immediate', () => { dict[last].imm = true; });
-  forthPrim('base@',  () => { push(base); });
-  forthPrim('base!',  () => { base = pop(); });
-  forthPrim('state@', () => { push(state); });
-  forthPrim('state!', () => { state = pop(); });
   forthImm('s"',      () => { sQuote(); });
-  forthImm('."',      () => { sQuote(); if (state == 1) { Comma(doType); } else { doType(); } });
+  forthImm('."',      () => { sQuote(); if (getState() == 1) { Comma(doType); } else { doType(); } });
   forthImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
   forthImm('then',    () => { mem[pop()] = here; });
   forthImm('begin',   () => { push(here); });
   forthImm('while',   () => { Comma(jmpnz); Comma(pop()); });
   forthImm('until',   () => { Comma(jmpz);  Comma(pop()); });
   forthImm('again',   () => { Comma(jmp);   Comma(pop()); });
+  for (let f of forthInitFuncs) { f(); }
 }
 
 // ***************************************************************
 function forthPrim(name, fn) { addWord(name).xt = fn; }
 function forthImm(name, fn)  { addWord(name, true).xt = fn; }
 function under(s)    { throw new Error(`${s} Stack underflow`); }
-function push(val)   { if (dsp < dse) mem[++dsp] = val; }
-function rPush(val)  { if (rsp < rse) mem[++rsp] = val; }
-function lPush(val)  { if (lsp < lse) mem[++lsp] = val; }
-function tPush(val)  { if (tsp < tse) mem[++tsp] = val; }
-function pop()       { return (dstk < dsp) ? mem[dsp--] : under('Data'); }
-function rPop()      { return (rstk < rsp) ? mem[rsp--] : under('Return'); }
-function lPop()      { return (lstk < lsp) ? mem[lsp--] : under('Loop'); }
-function tPop()      { return (tstk < tsp) ? mem[tsp--] : under('Temp'); }
-function TOS()       { return mem[dsp]; }
-function NOS()       { return mem[dsp-1]; }
-function setTOS(val) { mem[dsp] = val; }
-function setNOS(val) { mem[dsp-1] = val; }
+function push(val)   { if (mem[dstk] < dse) mem[++mem[dstk]] = val; }
+function rPush(val)  { if (mem[rstk] < rse) mem[++mem[rstk]] = val; }
+function lPush(val)  { if (mem[lstk] < lse) mem[++mem[lstk]] = val; }
+function tPush(val)  { if (mem[tstk] < tse) mem[++mem[tstk]] = val; }
+function pop()       { return (dstk < mem[dstk]) ? mem[mem[dstk]--] : under('Data'); }
+function rPop()      { return (rstk < mem[rstk]) ? mem[mem[rstk]--] : under('Return'); }
+function lPop()      { return (lstk < mem[lstk]) ? mem[mem[lstk]--] : under('Loop'); }
+function tPop()      { return (tstk < mem[tstk]) ? mem[mem[tstk]--] : under('Temp'); }
+function TOS()       { return mem[mem[dstk]]; }
+function NOS()       { return mem[mem[dstk]-1]; }
+function setTOS(val) { mem[mem[dstk]] = val; }
+function setNOS(val) { mem[mem[dstk]-1] = val; }
 function Comma(x)    { mem[here++] = x; }
 function nComma(a)   { for (let i=0; i<a.length; i++) { Comma(a[i]); } }
 function unloop()    { L0=lPop(); L1=lPop(); L2=lPop(); }
@@ -133,12 +134,13 @@ function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function needWord()  { throw new Error(`expected a word`); }
 function checkWord() { x = nextWord(); return x ? x : needWord(); }
 function doComment() { while (nextWord() && (wd !== ')')) {} }
-function doSemi()    { Comma(exit); state = 0; }
-function doColon()   { checkWord(); addWord(wd); state = 1; }
+function doSemi()    { Comma(exit); setState(0); }
+function doColon()   { checkWord(); addWord(wd); setState(1); }
+function getState()  { return mem[state]; }
+function setState(n) { mem[state] = n; }
 function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
 function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
-function doLit(n)    { if (state == 1) { nComma([lit, n]); } else { push(n); } return true; }
-function isWS()      { return tib.charCodeAt(toIn) < 33; }
+function doLit(n)    { if (getState() == 1) { nComma([lit, n]); } else { push(n); } return true; }
 function initFunc(f) { forthInitFuncs.push(f); }
 
 function addWord(name, immediate = false) {
@@ -168,7 +170,7 @@ function sQuote() {
   ++toIn; // skip the initial space
   delimWord('"');
   push(new String(wd));
-  if (state == 1) { nComma([lit, pop()]); }
+  if (getState() == 1) { nComma([lit, pop()]); }
 }
 
 function doWords() {
@@ -184,7 +186,7 @@ function doWords() {
 
 function doDotS() {
   type('(');
-  for (let i = dstk+1; i <= dsp; i++) { type(` ${mem[i]}`); }
+  for (let i = dstk+1; i <= mem[dstk]; i++) { type(` ${mem[i]}`); }
   type(` )`);
 }
 
@@ -221,11 +223,12 @@ function doSee() {
 
 function doNWB(n, w, b) {
   if (isNaN(n)) { console.log(n); return; }
-  if (!b) { b = base; }
+  if (!b) { b = mem[base]; }
   console.log(n.toString(b).padStart(w, '0'));
 }
 
 function nextWord() {
+  isWS = () => tib.charCodeAt(toIn) < 33; 
   while ((toIn < tibLen) && isWS()) { toIn++; }
   const start = toIn;
   while ((toIn < tibLen) &&(!isWS()) ) { toIn++; }
@@ -252,7 +255,7 @@ function doWord(token) {
   const entry = findWord(token);
   if (!entry) { return false; }
   const isPrimitive = typeof entry.xt === 'function';
-  if (entry.imm || (state == 0)) {
+  if (entry.imm || (getState() == 0)) {
     let x = here+100;
     if (!isPrimitive) { mem[x++] = colonWord; }
     mem[x++] = entry.xt;
@@ -279,67 +282,21 @@ function outer(source) {
   tib = cTib, toIn = cIn, tibLen = cLen;
 }
 
-const outputBuffer = [];
-function runForth(src, logCmd = true, logOutput = true) {
-  const origLog = console.log;
-  const input = src ?? '';
-  if (logOutput) {
-    console.log = (...args) => outputBuffer.push(args.join(' '));
-    if (logCmd) { console.log(`--> ${input}\n`); }
-  }
-  try {
-    outer(input);
-  } catch (e) {
-    console.log(`Error: ${e.message}`);
-    state = 0;
-  } finally {
-    if (logOutput) {
-      const output = document.getElementById('forth-output');
-      output.textContent += outputBuffer.join('') + " ok\n";
-      output.scrollTop = output.scrollHeight;
-      outputBuffer.length = 0; // Clear the buffer
-    }
-    console.log = origLog;
-  }
-}
-
-// For handling embedded Forth scripts in the HTML document
-window.addEventListener('load', async ()=>{              // load event handler
-    let slst = document.getElementsByTagName('script')   // get scripts
-    forthPrims();
-    initGraphics();
-    for (let f of forthInitFuncs) { f(); }
-    if (typeof registerDemoWords === 'function') { registerDemoWords(); }
-    for (let i=0; i<slst.length; i++) {
-        let s = slst[i]
-        if (s.type != 'application/forth') continue;     // handle embedded Forth 
-        if (s.src) {                                     // handle nested scripts
-            await fetch(s.src)                           // fetch remote Forth script
-            .then(r=>r.text())                           // get Forth commands
-            .then(cmd=>runForth(cmd, false))             // send it to Forth VM
-        }
-        else { runForth(s.innerText, false); }
-    }
-});
-
-// *********************************************************************************
-// *********************************************************************************
-// *********************************************************************************
 // *********************************************************************************
 // *********************************************************************************
 // Canvas graphics wrapper for Forth - for drawing on the HTML canvas
+// *********************************************************************************
+// *********************************************************************************
 
-let theCanvas = null;
-let theCtx = null;
+let theCanvas = null, theCtx = null;
 let sprites = [];  // Sprite storage: index -> Image object
 
-function initGraphics(canvas = undefined) {
-  if (!canvas) { canvas = document.getElementById('the-canvas'); }
-  if (!canvas) { return }
-  theCanvas = canvas;
-  theCtx = canvas.getContext('2d');
+initFunc(() => {
+  theCanvas = document.getElementById('the-canvas');
+  if (!theCanvas) { return }
+  theCtx = theCanvas.getContext('2d');
   registerGraphicsWords();
-}
+});
 
 function resizeCanvas(w, h) { theCanvas.width = w; theCanvas.height = h; }
 function setFillStyle(r, g, b) { theCtx.fillStyle = `rgb(${r},${g},${b})`; }
@@ -423,9 +380,10 @@ function registerGraphicsWords() {
 }
 
  // *********************************************************************************
+ // *********************************************************************************
  // ray-casting support - a generic Doom-style raycasting engine
- // Provides core raycasting, rendering, and animation loop
- // Does not depend on any specific game world or Forth integration
+ // *********************************************************************************
+ // *********************************************************************************
  
  function castRay(world, x, y, angle) {
   const dx = Math.cos(angle);
@@ -576,10 +534,9 @@ function createRaycastLoop(renderFn, inputFn, game) {
 
 // *********************************************************************************
 // *********************************************************************************
-// *********************************************************************************
-// *********************************************************************************
-// *********************************************************************************
 // Blocks - edit them here!
+// *********************************************************************************
+// *********************************************************************************
 blocks[0] = `block | Description
 ------|---------------------------
    0  | This text
