@@ -8,16 +8,11 @@
     <div style="display: flex; gap: 15px; align-items: flex-start;">
       <!-- Left: Textboxes (vertical) -->
       <div style="display: flex; flex-direction: column; gap: 10px;">
-        <!-- Input -->
+        <!-- Console -->
         <div>
-          <h2>Input (Select + Ctrl-Enter)</h2>
-          <textarea id="forth-hist" rows="16" cols="64"
+          <h2>Console (Select + Ctrl-Enter)</h2>
+          <textarea id="forth-hist" rows="25" cols="64"
             onkeydown="if (event.ctrlKey && event.key==='Enter'){ execSelected(); }"></textarea>
-        </div>
-        <!-- Output -->
-        <div>
-          <h2>Output</h2>
-          <textarea id="forth-output" rows="16" cols="64" readonly></textarea>
         </div>
         <!-- Block -->
         <div>
@@ -74,8 +69,8 @@
           state = 0;
         } finally {
           if (logOutput) {
-            const output = document.getElementById('forth-output');
-            output.textContent += outputBuffer.join('') + " ok\n";
+            const output = document.getElementById('forth-hist');
+            output.value += outputBuffer.join('') + " ok\n";
             output.scrollTop = output.scrollHeight;
             outputBuffer.length = 0; // Clear the buffer
           }
