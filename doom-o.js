@@ -154,15 +154,51 @@ function handleGameLogic() {
   // There is no game logic ... yet
 }
 
-forthPrim('game-go',    () => { raycastInit(); });
-forthPrim('game-stop',  () => { theGame.running = false; });
-forthPrim('game-pause', () => { theGame.paused = true; });
-forthPrim('game-resume',() => { theGame.paused = false; });
-forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
-forthPrim('game-frame', () => { renderRaycastFrame(); });
-forthPrim('mF', () => { moveForward(); });
-forthPrim('mB', () => { moveBackward(); });
-forthPrim('mL', () => { moveLeft(); });
-forthPrim('mR', () => { moveRight(); });
-forthPrim('tL', () => { turnLeft(); });
-forthPrim('tR', () => { turnRight(); });
+initFunc(() => {
+  forthPrim('game-go',      () => { raycastInit(); needsRedraw = true; });
+  forthPrim('game-stop',    () => { theGame.running = false; });
+  forthPrim('game-pause',   () => { theGame.paused = true; });
+  forthPrim('game-resume',  () => { theGame.paused = false; });
+  forthPrim('game-paused?', () => { push(theGame.paused ? -1 : 0); });
+  forthPrim('game-frame',   () => { renderRaycastFrame(); });
+  forthPrim('move-fwd',     () => { moveForward(); });
+  forthPrim('move-back',    () => { moveBackward(); });
+  forthPrim('move-left',    () => { moveLeft(); });
+  forthPrim('move-right',   () => { moveRight(); });
+  forthPrim('turn-left',    () => { turnLeft(); });
+  forthPrim('turn-right',   () => { turnRight(); });
+});
+
+// *********************************************************************************
+ // Demo words
+ blocks[0] += `  20  | Doom Demo words
+  21  | Doom Demo documentation
+`;
+  blocks[20] = `( Doom-O words )
+: go game-go redraw ."  Running!" 21 list ;
+: stop game-stop ."  Stopped!" ;
+: update game-frame ;
+: hkey ( n -- ) ( Handle Keys )
+    2 mod/ if move-fwd   then ( 'w' key )
+    2 mod/ if move-left  then ( 'a' key )
+    2 mod/ if move-back  then ( 's' key )
+    2 mod/ if move-right then ( 'd' key )
+    2 mod/ if turn-left  then ( 'j' key )
+    1 and  if turn-right then ( 'k' key )
+    redraw ;
+`;
+
+blocks[21] = `Doom-O Documentation
+Keyboard controls: w/a/s/d to move, j/k to turn, ESC to stop
+game-go      ( -- )  Initialize and start the game
+game-stop    ( -- )  Stop the game and return to Forth
+game-pause   ( -- )  Pause the game (ignore input)
+game-resume  ( -- )  Resume from pause
+game-paused? ( --f ) Check if game is paused
+move-fwd     ( -- )  Move forward
+move-back    ( -- )  Move backward
+move-left    ( -- )  Move left
+move-right   ( -- )  Move right
+turn-left    ( -- )  Turn left
+turn-right   ( -- )  Turn right
+`;

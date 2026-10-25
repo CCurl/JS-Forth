@@ -1,0 +1,121 @@
+<html>
+  <head>
+  <title>JS-Forth</title>
+  </head>
+  <body>
+    <h1><a id="hdr" href="https://github.com/CCurl/JS-Forth" target="_blank">??</a></h1>
+    
+    <div style="display: flex; gap: 15px; align-items: flex-start;">
+      <!-- Left: Textboxes (vertical) -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- Input -->
+        <div>
+          <h2>Input (Select + Ctrl-Enter)</h2>
+          <textarea id="forth-hist" rows="16" cols="64"
+            onkeydown="if (event.ctrlKey && event.key==='Enter'){ execSelected(); }"></textarea>
+        </div>
+        <!-- Output -->
+        <div>
+          <h2>Output</h2>
+          <textarea id="forth-output" rows="16" cols="64" readonly></textarea>
+        </div>
+        <!-- Block -->
+        <div>
+          <h2>Block <pre id="blk-num" style="display: inline;">??</pre></h2>
+          <textarea id="forth-block" rows="16" cols="64" readonly></textarea>
+        </div>
+      </div>
+      
+      <!-- Right: Canvas -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <canvas id="the-canvas" width="800" height="400" style="border: 1px solid #666; display: block; image-rendering: pixelated; width: auto; height: auto; align-self: flex-start;"></canvas>
+        <!-- Command input -->
+        <div>
+          <label><b>Command:</b> </label>
+          <input type="text" id="forth-input" size="85" autofocus value=""
+            onkeydown="if (event.key==='Enter'){ runCommand(); }">
+        </div>
+      </div>
+    </div>
+    <script src="./jsforth.js"></script>
+    <script src="./doom-o.js"></script> <!-- Doom demo "game" -->
+    <script type="application/forth">
+      : version s" JS-Forth v2026.10.24" ; : cr 10 emit ;
+      version s" hdr" html!
+      ( s" words" s" forth-hist" html! )
+      version type ."  - Chris Curl" cr cr ." Hello."
+      1 load  0 list
+    </script>
+    <script>
+      function execSelected() {
+        var ta = document.getElementById('forth-hist');
+        var sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+        if (sel) runForth(sel);
+      }
+      function runCommand() {
+        var inp  = document.getElementById('forth-input');
+        var hist = document.getElementById('forth-hist');
+        hist.value += inp.value+'\n';
+        runForth(inp.value);
+        inp.value = '';
+      }
+      const outputBuffer = [];
+      function runForth(src, logCmd = true, logOutput = true) {
+        const origLog = console.log;
+        const input = src ?? '';
+        if (logOutput) {
+          console.log = (...args) => outputBuffer.push(args.join(' '));
+          if (logCmd) { console.log(`--> ${input}\n`); }
+        }
+        try {
+          outer(input);
+        } catch (e) {
+          console.log(`Error: ${e.message}`);
+          state = 0;
+        } finally {
+          if (logOutput) {
+            const output = document.getElementById('forth-output');
+            output.textContent += outputBuffer.join('') + " ok\n";
+            output.scrollTop = output.scrollHeight;
+            outputBuffer.length = 0; // Clear the buffer
+          }
+          console.log = origLog;
+        }
+      }
+      // For handling embedded Forth scripts in the HTML document
+      window.addEventListener('load', async ()=>{              // load event handler
+        initForth();
+        let slst = document.getElementsByTagName('script');    // get scripts
+        for (let i=0; i<slst.length; i++) {
+          let s = slst[i]
+          if (s.type != 'application/forth') continue;         // handle embedded Forth 
+          if (s.src) {                                         // handle nested scripts
+            await fetch(s.src)                                 // fetch remote Forth script
+              .then(r=>r.text())                               // get Forth commands
+              .then(cmd=>runForth(cmd, false))                 // send it to Forth VM
+          }
+          else { runForth(s.innerText, false); }
+        }
+      });
+    </script>
+  </body>
+  <style>
+    body { font-family: monospace; }
+    h2 { text-align: left; margin: 0; }
+    pre { display: inline; margin: 0; }
+    label { font-size: 1.5em; }
+    #forth-input { height: 1.8em; padding: 4px; }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+      }
+      textarea, input {
+        background-color: #2d2d2d;
+        color: #e0e0e0;
+        border: 1px solid #444;
+      }
+    }
+  </style>
+</html>
