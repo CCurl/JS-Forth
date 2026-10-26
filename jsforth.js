@@ -167,8 +167,7 @@ function findWord(name) {
 }  
 
 function sQuote() {
-  ++toIn; // skip the initial space
-  delimWord('"');
+  ++toIn; nextWord('"'); ++toIn;
   push(new String(wd));
   if (getState() == 1) { nComma([lit, pop()]); }
 }
@@ -227,20 +226,17 @@ function doNWB(n, w, b) {
   console.log(n.toString(b).padStart(w, '0'));
 }
 
-function nextWord() {
-  isWS = () => tib.charCodeAt(toIn) < 33; 
-  while ((toIn < tibLen) && isWS()) { toIn++; }
-  const start = toIn;
-  while ((toIn < tibLen) &&(!isWS()) ) { toIn++; }
-  wd = tib.slice(start, toIn);
-  return wd.length;
-}
-
-function delimWord(d) {
-  const start = toIn;
-  while ((toIn < tibLen) && (d !== tib[toIn])) { toIn++; }
-  wd = tib.slice(start, toIn);
-  toIn++; // skip closing delimiter
+function nextWord(d = null) {
+  let start = toIn;
+  if (d) {
+    while ((toIn < tibLen) && (d !== tib[toIn])) { toIn++; }
+    wd = tib.slice(start, toIn);
+  } else {
+    while ((toIn < tibLen) && tib.charCodeAt(toIn) < 33) { toIn++; }
+    start = toIn;
+    while ((toIn < tibLen) &&(tib.charCodeAt(toIn) > 32) ) { toIn++; }
+    wd = tib.slice(start, toIn);
+  }
   return wd.length;
 }
 
