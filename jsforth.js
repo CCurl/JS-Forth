@@ -46,7 +46,7 @@ function initForth() {
   forthPrim('drop',   () => { pop(); });
   forthPrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
   forthPrim('over',   () => { n=NOS(); push(n); });
-  forthPrim('.s',     () => { doDotS(); });
+  forthPrim('.s',     () => { type('('); doDotS(); type(' )');});
   forthPrim('@',      () => { setTOS(mem[TOS()]); });
   forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
   forthPrim(',',      () => { Comma(pop()); });
@@ -70,19 +70,14 @@ function initForth() {
   forthPrim('<t',     () => { tPop(); });
   forthPrim('a@',     () => { push(varA); });
   forthPrim('a!',     () => { varA = pop(); });
-  forthPrim('>a',     () => { tPush(varA); varA = pop(); });
-  forthPrim('<a',     () => { varA = tPop(); });
   forthPrim('b@',     () => { push(varB); });
   forthPrim('b!',     () => { varB = pop(); });
-  forthPrim('>b',     () => { tPush(varB); varB = pop(); });
-  forthPrim('<b',     () => { varB = tPop(); });
   forthPrim('1+',     () => { ++mem[mem[dstk]]; });
   forthPrim('1-',     () => { --mem[mem[dstk]]; });
   forthPrim('timer',  () => { push(performance.now()); });
   forthPrim('here',   () => { push(here); });
   forthPrim('load',   () => { t=pop(); doLoad(t); });
   forthPrim('list',   () => { t=pop(); listForthBlock(t); });
-  forthPrim('see',    () => { doSee(); });
   forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
   forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
   forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
@@ -132,21 +127,19 @@ function doType()    { type(pop()); }
 function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
 function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function needWord()  { throw new Error(`expected a word`); }
-function checkWord() { x = nextWord(); return x ? x : needWord(); }
-function doComment() { while (nextWord() && (wd !== ')')) {} }
-function doSemi()    { Comma(exit); setState(0); }
-function doColon()   { checkWord(); addWord(wd); setState(1); }
+function checkWord() { x = nextWord(); return x ? wd : needWord(); }
 function getState()  { return mem[state]; }
 function setState(n) { mem[state] = n; }
-function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
-function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
+function doConst()   { addWord(checkWord()); nComma([lit, pop(), exit]); }
+function doVar()     { addWord(checkWord()); nComma([lit, here+3, exit, 0]); }
 function doLit(n)    { if (getState() == 1) { nComma([lit, n]); } else { push(n); } return true; }
+function doDotS()    { for (let i = dstk+1; i <= mem[dstk]; i++) { type(` ${mem[i]}`); } }
 function initFunc(f) { forthInitFuncs.push(f); }
 
 function addWord(name, immediate = false) {
   dict[++last] = { len: name.length, name: name, xt: here, imm: immediate };
   return dict[last];
-}  
+}
 
 function findWordIndex(name) {
   const nameLen = name.length;
@@ -154,17 +147,12 @@ function findWordIndex(name) {
     if ((dict[i].len === nameLen) && (dict[i].name === name)) { return i; }
   }  
   return -1;
-}  
-
-function findByXT(xt) {
-  for (let i = last; i >= 0; i--) { if (dict[i].xt === xt) return dict[i]; }  
-  return null;
-}  
+}
 
 function findWord(name) {
   const i = findWordIndex(name);
   return (0 <= i) ? dict[i] : undefined;
-}  
+}
 
 function sQuote() {
   ++toIn; nextWord('"'); ++toIn;
@@ -183,12 +171,6 @@ function doWords() {
   type(`${str} (${last+1} words)`);
 }
 
-function doDotS() {
-  type('(');
-  for (let i = dstk+1; i <= mem[dstk]; i++) { type(` ${mem[i]}`); }
-  type(` )`);
-}
-
 function listForthBlock(n) {
     document.getElementById('forth-block').value = blocks[n];
     setHTMLValue("blk-num", n);
@@ -197,27 +179,6 @@ function listForthBlock(n) {
 function setHTMLValue(id, val) {
   const e = document.getElementById(id);
   if (e) { e.textContent = val.toString(); }
-}
-
-function doSee() {
-  checkWord();
-  const i = findWordIndex(wd);
-  if (i == -1) { type(`{wd} not found`); return; }
-  const e = dict[i];
-  if (typeof e.xt === 'function') {
-    type(`${wd}: ${e.xt.toString()}\n`);
-    return;
-  }
-  const f = e.xt, t = (i == last) ? here : dict[i+1].xt;
-  type(`Word: ${wd} - ${f}:${t-1}\n`);
-  for (let j = f; j < t; j++) {
-    let opc = mem[j], desc = ''
-    if (typeof opc === 'number') {
-      const c = findByXT(opc);
-      if (c) { desc = ` (${c.name})`; }
-    }
-    type(`${j}: ${opc}${desc}\n`);
-  }
 }
 
 function doNWB(n, w, b) {
@@ -268,9 +229,9 @@ function outer(source) {
   const cTib =  tib, cIn = toIn, cLen = tibLen;
   tib = source, tibLen = tib.length, toIn = 0;
   while (nextWord() > 0) {
-    if (wd == '(') { doComment(); continue; }
-    if (wd == ':') { doColon(); continue; }
-    if (wd == ';') { doSemi(); continue; }
+    if (wd == '(') { while (nextWord() && (wd !== ')')) {} continue; }
+    if (wd == ':') { addWord(checkWord()); setState(1); continue; }
+    if (wd == ';') { Comma(exit); setState(0); continue; }
     if (doNum(wd)) { continue; }
     if (doWord(wd)) { continue; }
     throw new Error(`unknown word: ${wd}`);
@@ -543,11 +504,13 @@ blocks[0] = `block | Description
 `;
 
 blocks[1] = `( Utility and benchmark words )
-: @a a@ @ ;      : @a+ a@ dup 1+ a! @ ;
-: @b b@ @ ;      : @b+ b@ dup 1+ b! @ ;
-: >ab >b >a ;   : <ab <a <b ;
-: k 1000 * ;    : mil k k ;
-: lap timer ;   : .lap timer swap - . ;
+: >a  ( n-- ) a@ >t a! ;  : <a  ( -- )  t> a! ;
+: >b  ( n-- ) b@ >t b! ;  : <b  ( -- )  t> b! ;
+: @a  ( --n ) a@ @ ;      : @a+ ( --n ) a@ dup 1+ a! @ ;
+: @b  ( --n ) b@ @ ;      : @b+ ( --n ) b@ dup 1+ b! @ ;
+: >ab ( a b -- ) >b >a ;  : <ab ( -- )  <a <b ;
+: k 1000 * ;              : mil k k ;
+: lap timer ;             : .lap timer swap - . ;
 : bm lap swap for next .lap ;
 : dump swap >a for a@ . ." - " @a+ . cr next <a ;
 2 load  10 load  20 load
