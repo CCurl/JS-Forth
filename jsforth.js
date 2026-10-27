@@ -8,7 +8,7 @@ let lstk = 170, lse  = 199;   // Loop stack
 let base = 200, state = 201, here = 256
 let last = -1, pc = -1, op;
 let varA = 0, varB = 0, L0 = 0, L1 = 0, L2 = 0;
-let tib = '', wd = '', toIn = 0, tibLen = 0;
+let tib = '', wd = '', toIn = 0, tibLen = 0, num;
 
 // ***************************************************************
 // The bread and butter of this Forth
@@ -133,6 +133,7 @@ function setState(n) { mem[state] = n; }
 function doConst()   { addWord(checkWord()); nComma([lit, pop(), exit]); }
 function doVar()     { addWord(checkWord()); nComma([lit, here+3, exit, 0]); }
 function doLit(n)    { if (getState() == 1) { nComma([lit, n]); } else { push(n); } return true; }
+function doNum(w)    { num = Number(w); return !isNaN(num); }
 function doDotS()    { for (let i = dstk+1; i <= mem[dstk]; i++) { type(` ${mem[i]}`); } }
 function initFunc(f) { forthInitFuncs.push(f); }
 
@@ -191,38 +192,21 @@ function nextWord(d = null) {
   let start = toIn;
   if (d) {
     while ((toIn < tibLen) && (d !== tib[toIn])) { toIn++; }
-    wd = tib.slice(start, toIn);
   } else {
     while ((toIn < tibLen) && tib.charCodeAt(toIn) < 33) { toIn++; }
     start = toIn;
     while ((toIn < tibLen) &&(tib.charCodeAt(toIn) > 32) ) { toIn++; }
-    wd = tib.slice(start, toIn);
   }
+  wd = tib.slice(start, toIn);
   return wd.length;
 }
 
-// Supports integers, floats, 0x<Hex>, and 0b<Binary>
-function doNum(w) {
-  const x = Number(w);
-  if (!isNaN(x)) { return doLit(x); }
-  return false;
-}
-
-function doWord(token) {
-  const entry = findWord(token);
-  if (!entry) { return false; }
-  const isPrimitive = typeof entry.xt === 'function';
-  if (entry.imm || (getState() == 0)) {
-    let x = here+100;
-    if (!isPrimitive) { mem[x++] = colonWord; }
-    mem[x++] = entry.xt;
-    mem[x] = undefined;
-    inner(here+100);
-  } else {
-    if (!isPrimitive) { Comma(colonWord); }
-    Comma(entry.xt);
-  }
-  return true;
+function execWord(xt, isPrim) {
+  let x = here+100;
+  if (!isPrim) { mem[x++] = colonWord; }
+  mem[x++] = xt;
+  mem[x] = undefined;
+  inner(here+100);
 }
 
 function outer(source) {
@@ -232,9 +216,12 @@ function outer(source) {
     if (wd == '(') { while (nextWord() && (wd !== ')')) {} continue; }
     if (wd == ':') { addWord(checkWord()); setState(1); continue; }
     if (wd == ';') { Comma(exit); setState(0); continue; }
-    if (doNum(wd)) { continue; }
-    if (doWord(wd)) { continue; }
-    throw new Error(`unknown word: ${wd}`);
+    if (doNum(wd)) { doLit(num); continue; }
+    const entry = findWord(wd);
+    if (!entry) { throw new Error(`unknown word: ${wd}`); }
+    const isPrimitive = typeof entry.xt === 'function';
+    if (entry.imm || (getState() == 0)) { execWord(entry.xt, isPrimitive); }
+    else { isPrimitive ? Comma(entry.xt) : nComma([colonWord, entry.xt]); }
   }
   tib = cTib, toIn = cIn, tibLen = cLen;
 }
