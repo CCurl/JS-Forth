@@ -232,7 +232,7 @@ function outer(source) {
 // *********************************************************************************
 // *********************************************************************************
 
-let theCanvas = null, theCtx = null;
+let theCanvas = null, theCtx = null, r = 0, b = 0, g = 0;
 let sprites = [];  // Sprite storage: index -> Image object
 
 initFunc(() => {
@@ -242,9 +242,10 @@ initFunc(() => {
   registerGraphicsWords();
 });
 
+function getRGB() { b=pop(), g=pop(), r=pop(); }
+function nToRGB() { let n=pop(); b=n & 0xFF; g=(n >> 8) & 0xFF; r=(n >> 16) & 0xFF; }
+function toRGB()  { return `rgb(${r},${g},${b})`; }
 function resizeCanvas(w, h) { theCanvas.width = w; theCanvas.height = h; }
-function setFillStyle(r, g, b) { theCtx.fillStyle = `rgb(${r},${g},${b})`; }
-function setStrokeStyle(r, g, b) { theCtx.strokeStyle = `rgb(${r},${g},${b})`; }
 function fillRect(x, y, w, h) { theCtx.fillRect(x, y, w, h); }
 function strokeRect(x, y, w, h) { theCtx.strokeRect(x, y, w, h); }
 function spriteAt(x) { return sprites[x]; }
@@ -256,8 +257,10 @@ function registerGraphicsWords() {
   forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
   forthPrim('resize-canvas',  () => { w=pop(), h=pop(); resizeCanvas(w, h); });
   forthPrim('clear',          () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
-  forthPrim('color',          () => { b=pop(), g=pop(), r=pop(); setFillStyle(r, g, b); });
-  forthPrim('stroke',         () => { b=pop(), g=pop(), r=pop(); setStrokeStyle(r, g, b); });
+  forthPrim('color',          () => { getRGB();  theCtx.fillStyle = toRGB(); });
+  forthPrim('color#',         () => { nToRGB(); theCtx.fillStyle = toRGB(); });
+  forthPrim('stroke',         () => { getRGB();  theCtx.strokeStyle = toRGB(); });
+  forthPrim('stroke#',        () => { nToRGB(); theCtx.strokeStyle = toRGB(); });
   forthPrim('fill-alpha',     () => { theCtx.globalAlpha = pop() / 255; });
   forthPrim('line-width',     () => { theCtx.lineWidth = pop(); });
   forthPrim('rect',           () => { h=pop(), w=pop(), y=pop(), x=pop(); fillRect(x, y, w, h); });
@@ -520,7 +523,7 @@ blocks[10] = `( Turtle graphics support, ttl => turtle )
 var ttl-x       var ttl-y
 var ttl-angle   var pen-state
 
-: pen-color ( r g b-- ) stroke ;
+: pen-color ( rgb-- ) stroke# ;
 : pen-up    ( -- )    0 pen-state ! ;
 : pen-down  ( -- )   -1 pen-state ! ;
 : pen-down? ( -- n )  pen-state @ ;
