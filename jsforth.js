@@ -1,12 +1,12 @@
 // jsforth.js - (c) 2026, Chris Curl, MIT license
 
-let mem = [], dict = [], blocks = [], forthInitFuncs = [];
-let dstk =   0, dse  =  59;   // Data stack
-let rstk =  60, rse  = 119;   // Return stack
-let tstk = 100, tse  = 169;   // Temp stack
-let lstk = 170, lse  = 199;   // Loop stack
-let base = 200, state = 201, here = 256
-let last = -1, pc = -1, op;
+const mem = [], dict = [], blocks = [], forthInitFuncs = [];
+const base = 200, state = 201, hereStart = 256;
+const dstk =   0, lse = base-1;    // Data stack
+const rstk =  60, dse = rstk-1;    // Return stack
+const tstk = 100, rse = tstk-1;    // Temp stack
+const lstk = 170, tse = lstk-1;    // Loop stack
+let last = -1, pc = -1, op, here = hereStart;
 let varA = 0, varB = 0, L0 = 0, L1 = 0, L2 = 0;
 let tib = '', wd = '', toIn = 0, tibLen = 0, num;
 
@@ -74,6 +74,12 @@ function initForth() {
   forthPrim('b!',     () => { varB = pop(); });
   forthPrim('1+',     () => { ++mem[mem[dstk]]; });
   forthPrim('1-',     () => { --mem[mem[dstk]]; });
+  forthPrim('sin',    () => { t=pop(); push(Math.sin(t)); });   // sine
+  forthPrim('cos',    () => { t=pop(); push(Math.cos(t)); });   // cosine
+  forthPrim('tan',    () => { t=pop(); push(Math.tan(t)); });   // tangent
+  forthPrim('atan',   () => { t=pop(); push(Math.atan(t)); });  // arctangent
+  forthPrim('floor',  () => { t=pop(); push(Math.floor(t)); }); // floor
+  forthPrim('sqrt',   () => { t=pop(); push(Math.sqrt(t)); });  // square-root
   forthPrim('timer',  () => { push(performance.now()); });
   forthPrim('here',   () => { push(here); });
   forthPrim('load',   () => { t=pop(); doLoad(t); });
@@ -116,18 +122,18 @@ function nComma(a)   { for (let i=0; i<a.length; i++) { Comma(a[i]); } }
 function unloop()    { L0=lPop(); L1=lPop(); L2=lPop(); }
 function exit()      { pc = rPop(); }
 function lit()       { push(mem[pc++]); }
-function jmp()       { tgt = mem[pc++]; pc = tgt; }
-function jmpz()      { tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
-function jmpnz()     { tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
-function njmpz()     { tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
-function njmpnz()    { tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
+function jmp()       { const tgt = mem[pc++]; pc = tgt; }
+function jmpz()      { const tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
+function jmpnz()     { const tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
+function njmpz()     { const tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
+function njmpnz()    { const tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
 function emit(x)     { console.log(String.fromCharCode(x)) }
 function type(str)   { console.log(str?.toString() ?? "-undef-"); }
 function doType()    { type(pop()); }
 function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
 function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function needWord()  { throw new Error(`expected a word`); }
-function checkWord() { x = nextWord(); return x ? wd : needWord(); }
+function checkWord() { const x = nextWord(); return x ? wd : needWord(); }
 function getState()  { return mem[state]; }
 function setState(n) { mem[state] = n; }
 function doConst()   { addWord(checkWord()); nComma([lit, pop(), exit]); }
