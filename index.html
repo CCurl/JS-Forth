@@ -35,11 +35,11 @@
     <script src="./jsforth.js"></script>
     <script src="./doom-o.js"></script> <!-- Doom demo "game" -->
     <script type="application/forth">
-      : version s" JS-Forth v2026.10.31" ; : cr 10 emit ;
+      1 load
       version s" hdr" html!
       ( s" words" s" forth-hist" html! )
       version type ."  - Chris Curl" cr cr ." Hello."
-      1 load  0 list
+      0 list
     </script>
     <script>
       function execSelected() {

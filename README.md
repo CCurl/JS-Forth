@@ -2,6 +2,8 @@
 
 A Forth interpreter that runs in the browser. Supports word definitions, arithmetic, stack operations, memory access, and can be embedded directly in HTML via `<script type="application/forth">` tags.
 
+For quick demo, you can find the latest version here: https://ccurl.github.io/JS-Forth
+
 ## Quick Start
 - Copy the 2 files: 'index.html' and 'jsforth.js'.
 - Paste them into a folder of your choice.
@@ -85,7 +87,7 @@ The interpreter can update HTML elements dynamically:
 - Useful for displaying computed results, version info, block numbers, etc.
 
 ```forth
-s" JS-Forth v2026.10.10" s" hdr" html!   \ Update element id="hdr"
+version s" hdr" html!                    \ Update element id="hdr"
 5 s" block-num" html!                    \ Display block number
 ```
 
@@ -163,8 +165,10 @@ outer('10 2 / .');    // Outputs: 5
 | here               | ( --addr )             | Push the current compilation address.|
 | allot              | ( n-- )                | Allocate memory by incrementing here by `n`.|
 | .                  | ( n-- )                | Print TOS; numeric values are followed by a space.|
+| .NWB               | ( n width base-- )     | Print `n` in `base`, padded to `width` digits with leading zeros.|
 | type               | ( str-- )              | Print and remove a string.|
 | emit               | ( char-code-- )        | Print the character for a character code.|
+| cr                 | ( -- )                 | Print a newline.|
 | html!              | ( value id-str-- )     | Set an element's textContent.|
 | s"                 | ( -- )                 | Compile or push a string.|
 | ."                 | ( -- )                 | Compile or print a string.|
@@ -178,6 +182,7 @@ outer('10 2 / .');    // Outputs: 5
 | exit               | ( -- )                 | Exit from the current word.|
 | words              | ( -- )                 | Print the defined word names.|
 | see                | ( -- )                 | Read the next input word and print its definition.|
+| version            | ( --str )              | Push the current JS-Forth version string.|
 | var                | ( -- )                 | Define the next word as a variable.|
 | const              | ( n-- )                | Define the next word as a constant for `n`.|
 | immediate          | ( -- )                 | Mark the most recently defined word as immediate.|
@@ -199,6 +204,10 @@ outer('10 2 / .');    // Outputs: 5
 | timer              | ( --time )             | Push the current high-precision time.|
 | sin                | ( radians--result )    | Push the sine of an angle in radians.|
 | cos                | ( radians--result )    | Push the cosine of an angle in radians.|
+| tan                | ( radians--result )    | Push the tangent of an angle in radians.|
+| atan               | ( n--radians )         | Push the arctangent of a value in radians.|
+| floor              | ( n--result )          | Round TOS down to the nearest integer.|
+| sqrt               | ( n--result )          | Push the square root of TOS.|
 | base               | ( --addr )             | Get the address of the `base` variabe.|
 | state              | ( --addr )             | Get the address of the `state` variable.|
 | ttl-fw             | ( distance-- )         | Move forward, drawing when the pen is down.|
