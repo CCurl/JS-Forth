@@ -500,7 +500,7 @@ blocks[0] = `block | Description
 `;
 
 blocks[1] = `( Utility and benchmark words )
-: version s" JS-Forth v2026.10.30" ;  : cr 10 emit ;
+: version s" JS-Forth v2026.11.07" ;  : cr 10 emit ;
 : >a  ( n-- ) a@ >t a! ;  : <a  ( -- )  t> a! ;
 : >b  ( n-- ) b@ >t b! ;  : <b  ( -- )  t> b! ;
 : @a  ( --n ) a@ @ ;      : @a+ ( --n ) a@ dup 1+ a! @ ;
