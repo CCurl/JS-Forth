@@ -1,14 +1,14 @@
 // jsforth.js - (c) 2026, Chris Curl, MIT license
 
-let mem = [], dict = [], blocks = [], forthInitFuncs = [];
-let dstk =   0, dse  =  59;   // Data stack
-let rstk =  60, rse  = 119;   // Return stack
-let tstk = 100, tse  = 169;   // Temp stack
-let lstk = 170, lse  = 199;   // Loop stack
-let base = 200, state = 201, here = 256
-let last = -1, pc = -1, op;
+const mem = [], dict = [], blocks = [], forthInitFuncs = [];
+const base = 200, state = 201, hereStart = 256;
+const dstk =   0, lse = base-1;    // Data stack
+const rstk =  60, dse = rstk-1;    // Return stack
+const tstk = 100, rse = tstk-1;    // Temp stack
+const lstk = 170, tse = lstk-1;    // Loop stack
+let last = -1, pc = -1, op, here = hereStart;
 let varA = 0, varB = 0, L0 = 0, L1 = 0, L2 = 0;
-let tib = '', wd = '', toIn = 0, tibLen = 0;
+let tib = '', wd = '', toIn = 0, tibLen = 0, num;
 
 // ***************************************************************
 // The bread and butter of this Forth
@@ -46,7 +46,7 @@ function initForth() {
   forthPrim('drop',   () => { pop(); });
   forthPrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
   forthPrim('over',   () => { n=NOS(); push(n); });
-  forthPrim('.s',     () => { doDotS(); });
+  forthPrim('.s',     () => { type('('); doDotS(); type(' )');});
   forthPrim('@',      () => { setTOS(mem[TOS()]); });
   forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
   forthPrim(',',      () => { Comma(pop()); });
@@ -70,19 +70,20 @@ function initForth() {
   forthPrim('<t',     () => { tPop(); });
   forthPrim('a@',     () => { push(varA); });
   forthPrim('a!',     () => { varA = pop(); });
-  forthPrim('>a',     () => { tPush(varA); varA = pop(); });
-  forthPrim('<a',     () => { varA = tPop(); });
   forthPrim('b@',     () => { push(varB); });
   forthPrim('b!',     () => { varB = pop(); });
-  forthPrim('>b',     () => { tPush(varB); varB = pop(); });
-  forthPrim('<b',     () => { varB = tPop(); });
   forthPrim('1+',     () => { ++mem[mem[dstk]]; });
   forthPrim('1-',     () => { --mem[mem[dstk]]; });
+  forthPrim('sin',    () => { t=pop(); push(Math.sin(t)); });   // sine
+  forthPrim('cos',    () => { t=pop(); push(Math.cos(t)); });   // cosine
+  forthPrim('tan',    () => { t=pop(); push(Math.tan(t)); });   // tangent
+  forthPrim('atan',   () => { t=pop(); push(Math.atan(t)); });  // arctangent
+  forthPrim('floor',  () => { t=pop(); push(Math.floor(t)); }); // floor
+  forthPrim('sqrt',   () => { t=pop(); push(Math.sqrt(t)); });  // square-root
   forthPrim('timer',  () => { push(performance.now()); });
   forthPrim('here',   () => { push(here); });
   forthPrim('load',   () => { t=pop(); doLoad(t); });
   forthPrim('list',   () => { t=pop(); listForthBlock(t); });
-  forthPrim('see',    () => { doSee(); });
   forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
   forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
   forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
@@ -121,32 +122,31 @@ function nComma(a)   { for (let i=0; i<a.length; i++) { Comma(a[i]); } }
 function unloop()    { L0=lPop(); L1=lPop(); L2=lPop(); }
 function exit()      { pc = rPop(); }
 function lit()       { push(mem[pc++]); }
-function jmp()       { tgt = mem[pc++]; pc = tgt; }
-function jmpz()      { tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
-function jmpnz()     { tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
-function njmpz()     { tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
-function njmpnz()    { tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
+function jmp()       { const tgt = mem[pc++]; pc = tgt; }
+function jmpz()      { const tgt = mem[pc++]; if (pop() === 0) { pc = tgt; } }
+function jmpnz()     { const tgt = mem[pc++]; if (pop() !== 0) { pc = tgt; } }
+function njmpz()     { const tgt = mem[pc++]; if (TOS() === 0) { pc = tgt; } }
+function njmpnz()    { const tgt = mem[pc++]; if (TOS() !== 0) { pc = tgt; } }
 function emit(x)     { console.log(String.fromCharCode(x)) }
 function type(str)   { console.log(str?.toString() ?? "-undef-"); }
 function doType()    { type(pop()); }
 function dot(x)      { type(x); if (typeof x === 'number') { type(' '); } }
 function doLoad(n)   { if (blocks[n]) { outer(blocks[n]); } }
 function needWord()  { throw new Error(`expected a word`); }
-function checkWord() { x = nextWord(); return x ? x : needWord(); }
-function doComment() { while (nextWord() && (wd !== ')')) {} }
-function doSemi()    { Comma(exit); setState(0); }
-function doColon()   { checkWord(); addWord(wd); setState(1); }
+function checkWord() { const x = nextWord(); return x ? wd : needWord(); }
 function getState()  { return mem[state]; }
 function setState(n) { mem[state] = n; }
-function doConst()   { checkWord(); addWord(wd); nComma([lit, pop(), exit]); }
-function doVar()     { checkWord(); addWord(wd); nComma([lit, here+3, exit, 0]); }
+function doConst()   { addWord(checkWord()); nComma([lit, pop(), exit]); }
+function doVar()     { addWord(checkWord()); nComma([lit, here+3, exit, 0]); }
 function doLit(n)    { if (getState() == 1) { nComma([lit, n]); } else { push(n); } return true; }
+function doNum(w)    { num = Number(w); return !isNaN(num); }
+function doDotS()    { for (let i = dstk+1; i <= mem[dstk]; i++) { type(` ${mem[i]}`); } }
 function initFunc(f) { forthInitFuncs.push(f); }
 
 function addWord(name, immediate = false) {
   dict[++last] = { len: name.length, name: name, xt: here, imm: immediate };
   return dict[last];
-}  
+}
 
 function findWordIndex(name) {
   const nameLen = name.length;
@@ -154,21 +154,15 @@ function findWordIndex(name) {
     if ((dict[i].len === nameLen) && (dict[i].name === name)) { return i; }
   }  
   return -1;
-}  
-
-function findByXT(xt) {
-  for (let i = last; i >= 0; i--) { if (dict[i].xt === xt) return dict[i]; }  
-  return null;
-}  
+}
 
 function findWord(name) {
   const i = findWordIndex(name);
   return (0 <= i) ? dict[i] : undefined;
-}  
+}
 
 function sQuote() {
-  ++toIn; // skip the initial space
-  delimWord('"');
+  ++toIn; nextWord('"'); ++toIn;
   push(new String(wd));
   if (getState() == 1) { nComma([lit, pop()]); }
 }
@@ -184,12 +178,6 @@ function doWords() {
   type(`${str} (${last+1} words)`);
 }
 
-function doDotS() {
-  type('(');
-  for (let i = dstk+1; i <= mem[dstk]; i++) { type(` ${mem[i]}`); }
-  type(` )`);
-}
-
 function listForthBlock(n) {
     document.getElementById('forth-block').value = blocks[n];
     setHTMLValue("blk-num", n);
@@ -200,84 +188,46 @@ function setHTMLValue(id, val) {
   if (e) { e.textContent = val.toString(); }
 }
 
-function doSee() {
-  checkWord();
-  const i = findWordIndex(wd);
-  if (i == -1) { type(`{wd} not found`); return; }
-  const e = dict[i];
-  if (typeof e.xt === 'function') {
-    type(`${wd}: ${e.xt.toString()}\n`);
-    return;
-  }
-  const f = e.xt, t = (i == last) ? here : dict[i+1].xt;
-  type(`Word: ${wd} - ${f}:${t-1}\n`);
-  for (let j = f; j < t; j++) {
-    let opc = mem[j], desc = ''
-    if (typeof opc === 'number') {
-      const c = findByXT(opc);
-      if (c) { desc = ` (${c.name})`; }
-    }
-    type(`${j}: ${opc}${desc}\n`);
-  }
-}
-
 function doNWB(n, w, b) {
   if (isNaN(n)) { console.log(n); return; }
   if (!b) { b = mem[base]; }
   console.log(n.toString(b).padStart(w, '0'));
 }
 
-function nextWord() {
-  isWS = () => tib.charCodeAt(toIn) < 33; 
-  while ((toIn < tibLen) && isWS()) { toIn++; }
-  const start = toIn;
-  while ((toIn < tibLen) &&(!isWS()) ) { toIn++; }
-  wd = tib.slice(start, toIn);
-  return wd.length;
-}
-
-function delimWord(d) {
-  const start = toIn;
-  while ((toIn < tibLen) && (d !== tib[toIn])) { toIn++; }
-  wd = tib.slice(start, toIn);
-  toIn++; // skip closing delimiter
-  return wd.length;
-}
-
-// Supports integers, floats, 0x<Hex>, and 0b<Binary>
-function doNum(w) {
-  const x = Number(w);
-  if (!isNaN(x)) { return doLit(x); }
-  return false;
-}
-
-function doWord(token) {
-  const entry = findWord(token);
-  if (!entry) { return false; }
-  const isPrimitive = typeof entry.xt === 'function';
-  if (entry.imm || (getState() == 0)) {
-    let x = here+100;
-    if (!isPrimitive) { mem[x++] = colonWord; }
-    mem[x++] = entry.xt;
-    mem[x] = undefined;
-    inner(here+100);
+function nextWord(d = null) {
+  let start = toIn;
+  if (d) {
+    while ((toIn < tibLen) && (d !== tib[toIn])) { toIn++; }
   } else {
-    if (!isPrimitive) { Comma(colonWord); }
-    Comma(entry.xt);
+    while ((toIn < tibLen) && tib.charCodeAt(toIn) < 33) { toIn++; }
+    start = toIn;
+    while ((toIn < tibLen) &&(tib.charCodeAt(toIn) > 32) ) { toIn++; }
   }
-  return true;
+  wd = tib.slice(start, toIn);
+  return wd.length;
+}
+
+function execWord(xt, isPrim) {
+  let x = here+100;
+  if (!isPrim) { mem[x++] = colonWord; }
+  mem[x++] = xt;
+  mem[x] = undefined;
+  inner(here+100);
 }
 
 function outer(source) {
   const cTib =  tib, cIn = toIn, cLen = tibLen;
   tib = source, tibLen = tib.length, toIn = 0;
   while (nextWord() > 0) {
-    if (wd == '(') { doComment(); continue; }
-    if (wd == ':') { doColon(); continue; }
-    if (wd == ';') { doSemi(); continue; }
-    if (doNum(wd)) { continue; }
-    if (doWord(wd)) { continue; }
-    throw new Error(`unknown word: ${wd}`);
+    if (wd == '(') { while (nextWord() && (wd !== ')')) {} continue; }
+    if (wd == ':') { addWord(checkWord()); setState(1); continue; }
+    if (wd == ';') { Comma(exit); setState(0); continue; }
+    if (doNum(wd)) { doLit(num); continue; }
+    const entry = findWord(wd);
+    if (!entry) { throw new Error(`unknown word: ${wd}`); }
+    const isPrimitive = typeof entry.xt === 'function';
+    if (entry.imm || (getState() == 0)) { execWord(entry.xt, isPrimitive); }
+    else { isPrimitive ? Comma(entry.xt) : nComma([colonWord, entry.xt]); }
   }
   tib = cTib, toIn = cIn, tibLen = cLen;
 }
@@ -288,7 +238,7 @@ function outer(source) {
 // *********************************************************************************
 // *********************************************************************************
 
-let theCanvas = null, theCtx = null;
+let theCanvas = null, theCtx = null, r = 0, b = 0, g = 0;
 let sprites = [];  // Sprite storage: index -> Image object
 
 initFunc(() => {
@@ -298,9 +248,10 @@ initFunc(() => {
   registerGraphicsWords();
 });
 
+function getRGB() { b=pop(), g=pop(), r=pop(); }
+function nToRGB() { let n=pop(); b=n & 0xFF; g=(n >> 8) & 0xFF; r=(n >> 16) & 0xFF; }
+function toRGB()  { return `rgb(${r},${g},${b})`; }
 function resizeCanvas(w, h) { theCanvas.width = w; theCanvas.height = h; }
-function setFillStyle(r, g, b) { theCtx.fillStyle = `rgb(${r},${g},${b})`; }
-function setStrokeStyle(r, g, b) { theCtx.strokeStyle = `rgb(${r},${g},${b})`; }
 function fillRect(x, y, w, h) { theCtx.fillRect(x, y, w, h); }
 function strokeRect(x, y, w, h) { theCtx.strokeRect(x, y, w, h); }
 function spriteAt(x) { return sprites[x]; }
@@ -312,8 +263,10 @@ function registerGraphicsWords() {
   forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
   forthPrim('resize-canvas',  () => { w=pop(), h=pop(); resizeCanvas(w, h); });
   forthPrim('clear',          () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
-  forthPrim('color',          () => { b=pop(), g=pop(), r=pop(); setFillStyle(r, g, b); });
-  forthPrim('stroke',         () => { b=pop(), g=pop(), r=pop(); setStrokeStyle(r, g, b); });
+  forthPrim('color',          () => { getRGB();  theCtx.fillStyle = toRGB(); });
+  forthPrim('color#',         () => { nToRGB(); theCtx.fillStyle = toRGB(); });
+  forthPrim('stroke',         () => { getRGB();  theCtx.strokeStyle = toRGB(); });
+  forthPrim('stroke#',        () => { nToRGB(); theCtx.strokeStyle = toRGB(); });
   forthPrim('fill-alpha',     () => { theCtx.globalAlpha = pop() / 255; });
   forthPrim('line-width',     () => { theCtx.lineWidth = pop(); });
   forthPrim('rect',           () => { h=pop(), w=pop(), y=pop(), x=pop(); fillRect(x, y, w, h); });
@@ -547,11 +500,14 @@ blocks[0] = `block | Description
 `;
 
 blocks[1] = `( Utility and benchmark words )
-: @a a@ @ ;      : @a+ a@ dup 1+ a! @ ;
-: @b b@ @ ;      : @b+ b@ dup 1+ b! @ ;
-: >ab >b >a ;   : <ab <a <b ;
-: k 1000 * ;    : mil k k ;
-: lap timer ;   : .lap timer swap - . ;
+: version s" JS-Forth v2026.10.30" ;  : cr 10 emit ;
+: >a  ( n-- ) a@ >t a! ;  : <a  ( -- )  t> a! ;
+: >b  ( n-- ) b@ >t b! ;  : <b  ( -- )  t> b! ;
+: @a  ( --n ) a@ @ ;      : @a+ ( --n ) a@ dup 1+ a! @ ;
+: @b  ( --n ) b@ @ ;      : @b+ ( --n ) b@ dup 1+ b! @ ;
+: >ab ( a b -- ) >b >a ;  : <ab ( -- )  <a <b ;
+: k 1000 * ;              : mil k k ;
+: lap timer ;             : .lap timer swap - . ;
 : bm lap swap for next .lap ;
 : dump swap >a for a@ . ." - " @a+ . cr next <a ;
 2 load  10 load  20 load
@@ -574,7 +530,7 @@ blocks[10] = `( Turtle graphics support, ttl => turtle )
 var ttl-x       var ttl-y
 var ttl-angle   var pen-state
 
-: pen-color ( r g b-- ) stroke ;
+: pen-color ( rgb-- ) stroke# ;
 : pen-up    ( -- )    0 pen-state ! ;
 : pen-down  ( -- )   -1 pen-state ! ;
 : pen-down? ( -- n )  pen-state @ ;
