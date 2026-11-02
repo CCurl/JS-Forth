@@ -27,77 +27,80 @@ function inner(start) {
 function initForth() {
   mem[dstk] = dstk; mem[rstk] = rstk; mem[tstk] = tstk;
   mem[lstk] = lstk; mem[base] = 10,   mem[state] = 0;
-  forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
-  forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
-  forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
-  forthPrim('/',      () => { t=pop(); setTOS(TOS() / t); });
-  forthPrim('negate', () => { setTOS(-TOS()); });
-  forthPrim('/mod',   () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
-  forthPrim('mod/',   () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
-  forthPrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
-  forthPrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
-  forthPrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
-  forthPrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
-  forthPrim('and',    () => { t=pop(); setTOS(TOS() & t); });
-  forthPrim('or',     () => { t=pop(); setTOS(TOS() | t); });
-  forthPrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
-  forthPrim('com',    () => { setTOS(~TOS()); });
-  forthPrim('dup',    () => { push(TOS()); });
-  forthPrim('drop',   () => { pop(); });
-  forthPrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
-  forthPrim('over',   () => { n=NOS(); push(n); });
-  forthPrim('.s',     () => { type('('); doDotS(); type(' )');});
-  forthPrim('@',      () => { setTOS(mem[TOS()]); });
-  forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
-  forthPrim(',',      () => { Comma(pop()); });
-  forthPrim('.NWB',   () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
-  forthPrim('.',      () => { doNWB(pop(),0,mem[base]); type(' ');});
-  forthPrim('for',    () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
-  forthPrim('i',      () => { push(L0); });
-  forthPrim('next',   () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
-  forthPrim('unloop', () => { unloop(); });
-  forthPrim('emit',   () => { emit(pop()); });
-  forthPrim('exit',   () => { exit(); });
-  forthPrim('type',   () => { doType(); });
-  forthPrim('words',  () => { doWords(); });
-  forthPrim('var',    () => { doVar(); });
-  forthPrim('allot',  () => { here += pop(); });
-  forthPrim('const',  () => { doConst(); });
-  forthPrim('>t',     () => { tPush(pop()); });
-  forthPrim('t@',     () => { push(mem[mem[tstk]]); });
-  forthPrim('t!',     () => { mem[mem[tstk]] = pop(); });
-  forthPrim('t>',     () => { push(tPop()); });
-  forthPrim('<t',     () => { tPop(); });
-  forthPrim('a@',     () => { push(varA); });
-  forthPrim('a!',     () => { varA = pop(); });
-  forthPrim('b@',     () => { push(varB); });
-  forthPrim('b!',     () => { varB = pop(); });
-  forthPrim('1+',     () => { ++mem[mem[dstk]]; });
-  forthPrim('1-',     () => { --mem[mem[dstk]]; });
-  forthPrim('sin',    () => { t=pop(); push(Math.sin(t)); });   // sine
-  forthPrim('cos',    () => { t=pop(); push(Math.cos(t)); });   // cosine
-  forthPrim('tan',    () => { t=pop(); push(Math.tan(t)); });   // tangent
-  forthPrim('atan',   () => { t=pop(); push(Math.atan(t)); });  // arctangent
-  forthPrim('floor',  () => { t=pop(); push(Math.floor(t)); }); // floor
-  forthPrim('sqrt',   () => { t=pop(); push(Math.sqrt(t)); });  // square-root
-  forthPrim('timer',  () => { push(performance.now()); });
-  forthPrim('here',   () => { push(here); });
-  forthPrim('load',   () => { t=pop(); doLoad(t); });
-  forthPrim('list',   () => { t=pop(); listForthBlock(t); });
-  forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
-  forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
-  forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
-  forthPrim('base',   () => { push(base); });
-  forthPrim('state',  () => { push(state); });
-  forthPrim('immediate', () => { dict[last].imm = true; });
-  forthImm('s"',      () => { sQuote(); });
-  forthImm('."',      () => { sQuote(); if (getState() == 1) { Comma(doType); } else { doType(); } });
-  forthImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
-  forthImm('then',    () => { mem[pop()] = here; });
-  forthImm('begin',   () => { push(here); });
-  forthImm('while',   () => { Comma(jmpnz); Comma(pop()); });
-  forthImm('until',   () => { Comma(jmpz);  Comma(pop()); });
-  forthImm('again',   () => { Comma(jmp);   Comma(pop()); });
+  forthPrim('+',        () => { t=pop(); setTOS(TOS() + t); });
+  forthPrim('-',        () => { t=pop(); setTOS(TOS() - t); });
+  forthPrim('*',        () => { t=pop(); setTOS(TOS() * t); });
+  forthPrim('/',        () => { t=pop(); setTOS(TOS() / t); });
+  forthPrim('mod',      () => { t=pop(); n=TOS(); setTOS(n%t); });
+  forthPrim('/mod',     () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
+  forthPrim('mod/',     () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
+  forthPrim('negate',   () => { setTOS(-TOS()); });
+  forthPrim('<',        () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
+  forthPrim('=',        () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
+  forthPrim('>',        () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+  forthPrim('0=',       () => { setTOS(TOS() === 0 ? -1 : 0); });
+  forthPrim('and',      () => { t=pop(); setTOS(TOS() & t); });
+  forthPrim('or',       () => { t=pop(); setTOS(TOS() | t); });
+  forthPrim('xor',      () => { t=pop(); setTOS(TOS() ^ t); });
+  forthPrim('com',      () => { setTOS(~TOS()); });
+  forthPrim('dup',      () => { push(TOS()); });
+  forthPrim('drop',     () => { pop(); });
+  forthPrim('swap',     () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+  forthPrim('over',     () => { n=NOS(); push(n); });
+  forthPrim('.s',       () => { type('('); doDotS(); type(' )');});
+  forthPrim('@',        () => { setTOS(mem[TOS()]); });
+  forthPrim('!',        () => { t=pop(); n=pop(); mem[t] = n; });
+  forthPrim(',',        () => { Comma(pop()); });
+  forthPrim('.NWB',     () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
+  forthPrim('.',        () => { doNWB(pop(),0,mem[base]); type(' ');});
+  forthPrim('for',      () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
+  forthPrim('i',        () => { push(L0); });
+  forthPrim('next',     () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
+  forthPrim('unloop',   () => { unloop(); });
+  forthPrim('emit',     () => { emit(pop()); });
+  forthPrim('exit',     () => { exit(); });
+  forthPrim('type',     () => { doType(); });
+  forthPrim('words',    () => { doWords(); });
+  forthPrim('var',      () => { doVar(); });
+  forthPrim('allot',    () => { here += pop(); });
+  forthPrim('const',    () => { doConst(); });
+  forthPrim('>t',       () => { tPush(pop()); });
+  forthPrim('t@',       () => { push(mem[mem[tstk]]); });
+  forthPrim('t!',       () => { mem[mem[tstk]] = pop(); });
+  forthPrim('t>',       () => { push(tPop()); });
+  forthPrim('<t',       () => { tPop(); });
+  forthPrim('a@',       () => { push(varA); });
+  forthPrim('a!',       () => { varA = pop(); });
+  forthPrim('b@',       () => { push(varB); });
+  forthPrim('b!',       () => { varB = pop(); });
+  forthPrim('1+',       () => { ++mem[mem[dstk]]; });
+  forthPrim('1-',       () => { --mem[mem[dstk]]; });
+  forthPrim('sin',      () => { t=pop(); push(Math.sin(t)); });   // sine
+  forthPrim('cos',      () => { t=pop(); push(Math.cos(t)); });   // cosine
+  forthPrim('tan',      () => { t=pop(); push(Math.tan(t)); });   // tangent
+  forthPrim('atan',     () => { t=pop(); push(Math.atan(t)); });  // arctangent
+  forthPrim('floor',    () => { t=pop(); push(Math.floor(t)); }); // floor
+  forthPrim('sqrt',     () => { t=pop(); push(Math.sqrt(t)); });  // square-root
+  forthPrim('rand',     () => { t=pop(); push(Math.random() * t); });  // random
+  forthPrim('rand-max', () => { t=pop(); push(Math.floor(Math.random() * t)); });  // random
+  forthPrim('timer',    () => { push(performance.now()); });
+  forthPrim('here',     () => { push(here); });
+  forthPrim('load',     () => { t=pop(); doLoad(t); });
+  forthPrim('list',     () => { t=pop(); listForthBlock(t); });
+  forthPrim('sin',      () => { setTOS(Math.sin(TOS())); });
+  forthPrim('cos',      () => { setTOS(Math.cos(TOS())); });
+  forthPrim('html!',    () => { t=pop(); n=pop(); setHTMLValue(t, n); });
+  forthPrim('base',     () => { push(base); });
+  forthPrim('state',    () => { push(state); });
+  forthPrim('immediate',() => { dict[last].imm = true; });
+  forthImm('s"',        () => { sQuote(); });
+  forthImm('."',        () => { sQuote(); if (getState() == 1) { Comma(doType); } else { doType(); } });
+  forthImm('if',        () => { Comma(jmpz); push(here); Comma(0); });
+  forthImm('then',      () => { mem[pop()] = here; });
+  forthImm('begin',     () => { push(here); });
+  forthImm('while',     () => { Comma(jmpnz); Comma(pop()); });
+  forthImm('until',     () => { Comma(jmpz);  Comma(pop()); });
+  forthImm('again',     () => { Comma(jmp);   Comma(pop()); });
   for (let f of forthInitFuncs) { f(); }
 }
 
@@ -330,6 +333,18 @@ function registerGraphicsWords() {
     let sprite = sprites[pop()];
     if (sprite?.complete) { theCtx.drawImage(sprite, x, y, w, h); }
   });
+  forthPrim('frm-addr', () => { frmAddr=pop(); });
+  forthPrim('next-frame',() =>{ requestAnimationFrame(nextFrame); });
+}
+
+let frmAddr = 0;
+function nextFrame() {
+  if (frmAddr) {
+    mem[here+100] = colonWord;
+    mem[here+101] = frmAddr;
+    mem[here+102] = undefined;
+    inner(here+100);
+  }
 }
 
  // *********************************************************************************
@@ -506,8 +521,8 @@ blocks[1] = `( Utility and benchmark words )
 : @a  ( --n ) a@ @ ;      : @a+ ( --n ) a@ dup 1+ a! @ ;
 : @b  ( --n ) b@ @ ;      : @b+ ( --n ) b@ dup 1+ b! @ ;
 : >ab ( a b -- ) >b >a ;  : <ab ( -- )  <a <b ;
-: k 1000 * ;              : mil k k ;
 : lap timer ;             : .lap timer swap - . ;
+: ? @ . ;     : k 1000 * ;    : mil k k ;
 : bm lap swap for next .lap ;
 : dump swap >a for a@ . ." - " @a+ . cr next <a ;
 2 load  10 load  20 load
@@ -571,4 +586,52 @@ pen-state  ( --addr )  pen state (0 => up, -1 => down)
 pen-up     ( -- )      lift pen up (not drawing)
 pen-down   ( -- )      put pen down (drawing)
 pen-down?  ( --f )     f: TRUE (-1) if pen is down
+`;
+
+blocks[12] = `( Block 12: A small bouncing-line demo. )
+( Example usage:  lines )
+
+var x0  var y0   var x1  var y1
+var vx0 var vy0  var vx1 var vy1
+var r   var b    var g
+
+: reset-lines ( -- )
+   40  x0 !  20  y0 !   500  x1 ! 300  y1 !
+    5 vx0 !  -3 vy0 !    -4 vx1 !   5 vy1 !
+    0 r !    85 b !     170 g ! ;
+reset-lines 
+
+: clamp-x0 ( -- )  x0 @ 0 < if 0 x0 ! vx0 @ negate vx0 ! then
+  x0 @ canvas-width > if canvas-width x0 ! vx0 @ negate vx0 ! then ;
+
+: clamp-y0 ( -- )  y0 @ 0 < if 0 y0 ! vy0 @ negate vy0 ! then
+  y0 @ canvas-height > if canvas-height y0 ! vy0 @ negate vy0 ! then ;
+
+: clamp-x1 ( -- )  x1 @ 0 < if 0 x1 ! vx1 @ negate vx1 ! then
+  x1 @ canvas-width > if canvas-width x1 ! vx1 @ negate vx1 ! then ;
+
+: clamp-y1 ( -- )  y1 @ 0 < if 0 y1 ! vy1 @ negate vy1 ! then
+  y1 @ canvas-height > if canvas-height y1 ! vy1 @ negate vy1 ! then ;
+
+: step ( -- )
+  x0 @ vx0 @ + x0 !   y0 @ vy0 @ + y0 !
+  x1 @ vx1 @ + x1 !   y1 @ vy1 @ + y1 !
+  clamp-x0  clamp-y0  clamp-x1  clamp-y1 ;
+
+: next-color ( -- )
+  r @ 1+ 256 mod r !
+  b @ 1+ 256 mod b !
+  g @ 1+ 256 mod g ! ;
+
+: draw-line ( -- )
+  clear r @ b @ g @ stroke
+  begin-path   x0 @ y0 @ move-to
+  x1 @ y1 @ line-to   stroke-path ;
+
+: one-frame ( -- ) next-color step draw-line ;
+
+( next-frame queues the next frame to be drawn, and returns )
+( frm-addr holds the address of word executed by next-frame )
+here frm-addr
+: lines ( -- ) one-frame  next-frame ;
 `;
