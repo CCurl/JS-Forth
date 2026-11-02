@@ -7,7 +7,7 @@ const rstk =  60, dse = rstk-1;    // Return stack
 const tstk = 100, rse = tstk-1;    // Temp stack
 const lstk = 170, tse = lstk-1;    // Loop stack
 let last = -1, pc = -1, op, here = hereStart;
-let varA = 0, varB = 0, L0 = 0, L1 = 0, L2 = 0;
+let varX = 0, varY = 0, L0 = 0, L1 = 0, L2 = 0;
 let tib = '', wd = '', toIn = 0, tibLen = 0, num;
 
 // ***************************************************************
@@ -69,10 +69,10 @@ function initForth() {
   forthPrim('t!',       () => { mem[mem[tstk]] = pop(); });
   forthPrim('t>',       () => { push(tPop()); });
   forthPrim('<t',       () => { tPop(); });
-  forthPrim('a@',       () => { push(varA); });
-  forthPrim('a!',       () => { varA = pop(); });
-  forthPrim('b@',       () => { push(varB); });
-  forthPrim('b!',       () => { varB = pop(); });
+  forthPrim('x@',       () => { push(varX); });
+  forthPrim('x!',       () => { varX = pop(); });
+  forthPrim('y@',       () => { push(varY); });
+  forthPrim('y!',       () => { varY = pop(); });
   forthPrim('1+',       () => { ++mem[mem[dstk]]; });
   forthPrim('1-',       () => { --mem[mem[dstk]]; });
   forthPrim('sin',      () => { t=pop(); push(Math.sin(t)); });   // sine
@@ -512,20 +512,21 @@ blocks[0] = `block | Description
    2  | Geometry
   10  | Turtle graphics support
   11  | Turtle graphics documentation
+  12  | Lines example using turtle graphics
 `;
 
 blocks[1] = `( Utility and benchmark words )
 : version s" JS-Forth v2026.11.07" ;  : cr 10 emit ;
-: >a  ( n-- ) a@ >t a! ;  : <a  ( -- )  t> a! ;
-: >b  ( n-- ) b@ >t b! ;  : <b  ( -- )  t> b! ;
-: @a  ( --n ) a@ @ ;      : @a+ ( --n ) a@ dup 1+ a! @ ;
-: @b  ( --n ) b@ @ ;      : @b+ ( --n ) b@ dup 1+ b! @ ;
-: >ab ( a b -- ) >b >a ;  : <ab ( -- )  <a <b ;
+: >x  ( n-- ) x@ >t x! ;  : <x  ( -- )  t> x! ;
+: >y  ( n-- ) y@ >t y! ;  : <y  ( -- )  t> y! ;
+: @x  ( --n ) x@ @ ;      : @x+ ( --n ) x@ dup 1+ x! @ ;
+: @y  ( --n ) y@ @ ;      : @y+ ( --n ) y@ dup 1+ y! @ ;
+: >xy ( x y -- ) >y >x ;  : <xy ( -- )  <x <y ;
 : lap timer ;             : .lap timer swap - . ;
 : ? @ . ;     : k 1000 * ;    : mil k k ;
 : bm lap swap for next .lap ;
-: dump swap >a for a@ . ." - " @a+ . cr next <a ;
-2 load  10 load  20 load
+: dump swap >x for x@ . ." - " @x+ . cr next <x ;
+2 load  10 load  ( 20 load )  12 load
 `;
 
 blocks[2] = `( Geometry words )
@@ -545,7 +546,8 @@ blocks[10] = `( Turtle graphics support, ttl => turtle )
 var ttl-x       var ttl-y
 var ttl-angle   var pen-state
 
-: pen-color ( rgb-- ) stroke# ;
+: pen-color  ( r g b-- ) stroke ;
+: pen-color# ( rgb-- )   stroke# ;
 : pen-up    ( -- )    0 pen-state ! ;
 : pen-down  ( -- )   -1 pen-state ! ;
 : pen-down? ( -- n )  pen-state @ ;
@@ -556,10 +558,10 @@ var ttl-angle   var pen-state
     pen-down? if ttl-x @ ttl-y @ line-to stroke-path then ;
 
 : ttl-fw ( distance -- )
-    >b ttl-angle @ deg>rad >a
-    ttl-x @ a@ sin b@ * +
-    ttl-y @ a@ cos b@ * -
-    ttl-goto <a <b ;
+    >y ttl-angle @ deg>rad >x
+    ttl-x @ x@ sin y@ * +
+    ttl-y @ x@ cos y@ * -
+    ttl-goto <x <y ;
   
 : ttl-rt ( angle -- ) ttl-angle @ + ttl-angle ! ;
 : ttl-lt ( angle -- ) negate ttl-rt ;
@@ -582,6 +584,7 @@ ttl-lt     ( deg-- )   turn left
 ttl-home   ( -- )      move to home position (canvas center)
 ttl-square ( size-- )  draw a square
 pen-color  ( r g b-- ) set pen color
+pen-color# ( rgb-- )   set pen color
 pen-state  ( --addr )  pen state (0 => up, -1 => down)
 pen-up     ( -- )      lift pen up (not drawing)
 pen-down   ( -- )      put pen down (drawing)
@@ -591,30 +594,32 @@ pen-down?  ( --f )     f: TRUE (-1) if pen is down
 blocks[12] = `( Block 12: A small bouncing-line demo. )
 ( Example usage:  lines )
 
-var x0  var y0   var x1  var y1
-var vx0 var vy0  var vx1 var vy1
-var r   var b    var g
+var x1   var y1
+var vx0  var vy0  
+var vx1  var vy1
+var r    var b     var g
+canvas-width  const cw   canvas-height const ch
 
 : reset-lines ( -- )
-   40  x0 !  20  y0 !   500  x1 ! 300  y1 !
-    5 vx0 !  -3 vy0 !    -4 vx1 !   5 vy1 !
+   40 x!     20 y!      500 x1 !  300 y1 !
+    5 vx0 !  -3 vy0 !    -4 vx1 !   4 vy1 !
     0 r !    85 b !     170 g ! ;
 reset-lines 
 
-: clamp-x0 ( -- )  x0 @ 0 < if 0 x0 ! vx0 @ negate vx0 ! then
-  x0 @ canvas-width > if canvas-width x0 ! vx0 @ negate vx0 ! then ;
+: clamp-x0 ( -- )  x@ 0 < if 0 x! vx0 @ negate vx0 ! then
+  x@ cw > if cw x! vx0 @ negate vx0 ! then ;
 
-: clamp-y0 ( -- )  y0 @ 0 < if 0 y0 ! vy0 @ negate vy0 ! then
-  y0 @ canvas-height > if canvas-height y0 ! vy0 @ negate vy0 ! then ;
+: clamp-y0 ( -- )  y@ 0 < if 0 y! vy0 @ negate vy0 ! then
+  y@ ch > if ch y! vy0 @ negate vy0 ! then ;
 
 : clamp-x1 ( -- )  x1 @ 0 < if 0 x1 ! vx1 @ negate vx1 ! then
-  x1 @ canvas-width > if canvas-width x1 ! vx1 @ negate vx1 ! then ;
+  x1 @ cw > if cw x1 ! vx1 @ negate vx1 ! then ;
 
 : clamp-y1 ( -- )  y1 @ 0 < if 0 y1 ! vy1 @ negate vy1 ! then
-  y1 @ canvas-height > if canvas-height y1 ! vy1 @ negate vy1 ! then ;
+  y1 @ ch > if ch y1 ! vy1 @ negate vy1 ! then ;
 
 : step ( -- )
-  x0 @ vx0 @ + x0 !   y0 @ vy0 @ + y0 !
+  x@ vx0 @ + x!   y@ vy0 @ + y!
   x1 @ vx1 @ + x1 !   y1 @ vy1 @ + y1 !
   clamp-x0  clamp-y0  clamp-x1  clamp-y1 ;
 
@@ -625,8 +630,8 @@ reset-lines
 
 : draw-line ( -- )
   clear r @ b @ g @ stroke
-  begin-path   x0 @ y0 @ move-to
-  x1 @ y1 @ line-to   stroke-path ;
+  x@ y@ pen-up   ttl-goto
+  x1 @ y1 @ pen-down ttl-goto ;
 
 : one-frame ( -- ) next-color step draw-line ;
 
