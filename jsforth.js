@@ -25,7 +25,7 @@ function inner(start) {
 
 // ***************************************************************
 function initForth() {
-  mem[dstk] = dstk; mem[rstk] = rstk; mem[tstk] = tstk;
+  mem[dstk] = dstk; mem[rstk] = rstk; mem[tstk] = tstk+1;
   mem[lstk] = lstk; mem[base] = 10,   mem[state] = 0;
   forthPrim('+',        () => { t=pop(); setTOS(TOS() + t); });
   forthPrim('-',        () => { t=pop(); setTOS(TOS() - t); });
@@ -552,6 +552,7 @@ blocks[2] = `( Geometry words )
 blocks[10] = `( Turtle graphics support, ttl => turtle )
 var ttl-x       var ttl-y
 var ttl-angle   var pen-state
+var lines-xt
 
 : pen-color  ( r g b-- ) stroke ;
 : pen-color# ( rgb-- )   stroke# ;
@@ -617,13 +618,12 @@ var rgbh #lines 1- allot ( history for rgb )
 : rgb>n ( --n )  r @ 256 * g @ + 256 * b @ + ;
 : n>rgb ( n-- )  256 /mod swap b ! 256 /mod r ! g ! ;
 
-: hi    ( n--m )  #lines mod ;
-: h++   ( -- )    t@ 1+ hi t! ;
 : x0h!  ( -- )  x@    x0h  t@ + ! ;  : x0h@  ( i--n )  x0h  + @ ;
 : x1h!  ( -- )  x1 @  x1h  t@ + ! ;  : x1h@  ( i--n )  x1h  + @ ;
 : y0h!  ( -- )  y@    y0h  t@ + ! ;  : y0h@  ( i--n )  y0h  + @ ;
 : y1h!  ( -- )  y1 @  y1h  t@ + ! ;  : y1h@  ( i--n )  y1h  + @ ;
 : rgbh! ( -- )  rgb>n rgbh t@ + ! ;  : rgbh@ ( i--n )  rgbh + @ ;
+: h++   ( -- )  t@ 1+ #lines mod t! ;
 : h!    ( -- )  h++ x0h! y0h! x1h! y1h! rgbh! ;
 : h.    ( n-- ) dup x0h@ . dup y0h@ . dup x1h@ . dup y1h@ . rgbh@ . ;
 
@@ -646,32 +646,32 @@ reset-lines
   y1 @ ch > if ch y1 ! vy1 @ negate vy1 ! then ;
 
 : step ( -- )
-  x@ vx0 @ + x!   y@ vy0 @ + y!
+  x@   vx0 @ + x!     y@   vy0 @ + y!
   x1 @ vx1 @ + x1 !   y1 @ vy1 @ + y1 !
   clamp-x0  clamp-y0  clamp-x1  clamp-y1 ;
 
 : next-color ( -- )
-  r @  5 + 256 mod r !
-  g @ 10 + 256 mod g !
-  b @ 15 + 256 mod b ! ;
+  r @  7 + 256 mod r !
+  g @ 11 + 256 mod g !
+  b @ 17 + 256 mod b ! ;
 
 : draw-line ( -- )
   r @ g @ b @ pen-color
   x@ y@ pen-up   ttl-goto
   x1 @ y1 @ pen-down ttl-goto ;
 
-: draw-hline ( i-- ) hi >t
+: draw-hline ( i-- ) #lines mod >t
   t@ rgbh@ pen-color#
-  t@ x0h@  t@ y0h@ pen-up   ttl-goto
-  t@ x1h@  t@ y1h@ pen-down ttl-goto <t ;
+  t@ x0h@  t@ y0h@  pen-up    ttl-goto
+  t@ x1h@  t@ y1h@  pen-down  ttl-goto <t ;
 
 : draw-hlines ( -- ) #lines for i 1+ t@ + draw-hline  next ;
-
 : one-frame ( -- ) clear draw-hlines next-color step draw-line h! ;
 
-( next-frame queues the next frame to be drawn, and returns )
-( frm-addr holds the address of word executed by next-frame )
-here frame-xt!
+( next-frame requests the canvas to be redrawn, and returns )
+( frame-xt holds the address of word to be executed by next-frame )
+here lines-xt !
 : lines ( -- ) one-frame  next-frame ;
-: line-demo ( -- )  0 >t lines ;
+: lines-demo ( -- )  0 t! lines-xt @ frame-xt! lines ;
+: lines-stop ( -- )  0 frame-xt! ;
 `;
