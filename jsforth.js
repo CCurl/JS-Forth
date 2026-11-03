@@ -517,7 +517,7 @@ blocks[0] = `block | Description
    2  | Geometry
   10  | Turtle graphics support
   11  | Turtle graphics documentation
-  12  | Lines example using turtle graphics
+  12  | Bounding lines demo
 `;
 
 blocks[1] = `( Utility and benchmark words )
@@ -599,13 +599,13 @@ pen-down   ( -- )      put pen down (drawing)
 pen-down?  ( --f )     f: TRUE (-1) if pen is down
 `;
 
-blocks[12] = `( Block 12: A small bouncing-line demo. )
-( Example usage:  lines )
+blocks[12] = `( Block 12: A bouncing-lines demo. )
 
-var x1   var y1
-var vx0  var vy0  
-var vx1  var vy1
-var r    var g     var b
+( built-in 'x' and 'y' is the 'from' point )
+var x1   var y1   ( the 'to' point )
+var vx0  var vy0  ( velocity for the 'from' point )
+var vx1  var vy1  ( velocity for the 'to' point )
+var r    var g     var b ( line color components )
 canvas-width  const cw   canvas-height const ch
 
 40 const #lines
@@ -660,10 +660,10 @@ reset-lines
   x@ y@ pen-up   ttl-goto
   x1 @ y1 @ pen-down ttl-goto ;
 
-: draw-hline ( i-- ) #lines mod >t
-  t@ rgbh@ pen-color#
-  t@ x0h@  t@ y0h@  pen-up    ttl-goto
-  t@ x1h@  t@ y1h@  pen-down  ttl-goto <t ;
+: draw-hline ( i-- ) #lines mod z!
+  z@ rgbh@ pen-color#
+  z@ x0h@  z@ y0h@  pen-up    ttl-goto
+  z@ x1h@  z@ y1h@  pen-down  ttl-goto ;
 
 : draw-hlines ( -- ) #lines for i 1+ t@ + draw-hline  next ;
 : one-frame ( -- ) clear draw-hlines next-color step draw-line h! ;
@@ -672,6 +672,7 @@ reset-lines
 ( frame-xt holds the address of word to be executed by next-frame )
 here lines-xt !
 : lines ( -- ) one-frame  next-frame ;
-: lines-demo ( -- )  0 t! lines-xt @ frame-xt! lines ;
+: lines-go ( -- )  lines-xt @ frame-xt! lines ;
 : lines-stop ( -- )  0 frame-xt! ;
+: lines-demo ( -- )  0 t! lines-go ;
 `;
