@@ -7,7 +7,7 @@ const rstk =  60, dse = rstk-1;    // Return stack
 const tstk = 100, rse = tstk-1;    // Temp stack
 const lstk = 170, tse = lstk-1;    // Loop stack
 let last = -1, pc = -1, op, here = hereStart;
-let varX = 0, varY = 0, L0 = 0, L1 = 0, L2 = 0;
+let varX = 0, varY = 0, varZ = 0, L0 = 0, L1 = 0, L2 = 0;
 let tib = '', wd = '', toIn = 0, tibLen = 0, num;
 
 // ***************************************************************
@@ -66,13 +66,15 @@ function initForth() {
   forthPrim('const',    () => { doConst(); });
   forthPrim('>t',       () => { tPush(pop()); });
   forthPrim('t@',       () => { push(mem[mem[tstk]]); });
-  forthPrim('t!',       () => { mem[mem[tstk]] = pop(); });
+  forthPrim('t!',       () => { tPop(); tPush(pop()); });
   forthPrim('t>',       () => { push(tPop()); });
   forthPrim('<t',       () => { tPop(); });
   forthPrim('x@',       () => { push(varX); });
   forthPrim('x!',       () => { varX = pop(); });
   forthPrim('y@',       () => { push(varY); });
   forthPrim('y!',       () => { varY = pop(); });
+  forthPrim('z@',       () => { push(varZ); });
+  forthPrim('z!',       () => { varZ = pop(); });
   forthPrim('1+',       () => { ++mem[mem[dstk]]; });
   forthPrim('1-',       () => { --mem[mem[dstk]]; });
   forthPrim('sin',      () => { t=pop(); push(Math.sin(t)); });   // sine
@@ -335,16 +337,16 @@ function registerGraphicsWords() {
     let sprite = sprites[pop()];
     if (sprite?.complete) { theCtx.drawImage(sprite, x, y, w, h); }
   });
-  forthPrim('frm-addr!', () => { frmAddr=pop(); });
-  forthPrim('frm-addr@', () => { push(frmAddr); });
+  forthPrim('frame-xt!', () => { frameXt=pop(); });
+  forthPrim('frame-xt@', () => { push(frameXt); });
   forthPrim('next-frame',() =>{ requestAnimationFrame(nextFrame); });
 }
 
-let frmAddr = 0;
+let frameXt = 0;
 function nextFrame() {
-  if (frmAddr) {
+  if (frameXt) {
     mem[here+100] = colonWord;
-    mem[here+101] = frmAddr;
+    mem[here+101] = frameXt;
     mem[here+102] = undefined;
     inner(here+100);
   }
@@ -522,8 +524,10 @@ blocks[1] = `( Utility and benchmark words )
 : version s" JS-Forth v2026.11.07" ;  : cr 10 emit ;
 : >x  ( n-- ) x@ >t x! ;  : <x  ( -- )  t> x! ;
 : >y  ( n-- ) y@ >t y! ;  : <y  ( -- )  t> y! ;
+: >z  ( n-- ) z@ >t z! ;  : <z  ( -- )  t> z! ;
 : @x  ( --n ) x@ @ ;      : @x+ ( --n ) x@ dup 1+ x! @ ;
 : @y  ( --n ) y@ @ ;      : @y+ ( --n ) y@ dup 1+ y! @ ;
+: @z  ( --n ) z@ @ ;      : @z+ ( --n ) z@ dup 1+ z! @ ;
 : >xy ( x y -- ) >y >x ;  : <xy ( -- )  <x <y ;
 : lap timer ;             : .lap timer swap - . ;
 : ? @ . ;     : k 1000 * ;    : mil k k ;
@@ -667,7 +671,7 @@ reset-lines
 
 ( next-frame queues the next frame to be drawn, and returns )
 ( frm-addr holds the address of word executed by next-frame )
-here frm-addr!
+here frame-xt!
 : lines ( -- ) one-frame  next-frame ;
 : line-demo ( -- )  0 >t lines ;
 `;
