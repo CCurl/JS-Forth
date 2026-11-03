@@ -254,6 +254,7 @@ initFunc(() => {
 function getRGB() { b=pop(), g=pop(), r=pop(); }
 function nToRGB() { let n=pop(); b=n & 0xFF; g=(n >> 8) & 0xFF; r=(n >> 16) & 0xFF; }
 function toRGB()  { return `rgb(${r},${g},${b})`; }
+function rgbToN()  { getRGB(); push((r << 16) | (g << 8) | b); }
 function resizeCanvas(w, h) { theCanvas.width = w; theCanvas.height = h; }
 function fillRect(x, y, w, h) { theCtx.fillRect(x, y, w, h); }
 function strokeRect(x, y, w, h) { theCtx.strokeRect(x, y, w, h); }
@@ -266,6 +267,7 @@ function registerGraphicsWords() {
   forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
   forthPrim('resize-canvas',  () => { w=pop(), h=pop(); resizeCanvas(w, h); });
   forthPrim('clear',          () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
+  forthPrim('rgb>n',          () => { rgbToN(); });
   forthPrim('color',          () => { getRGB();  theCtx.fillStyle = toRGB(); });
   forthPrim('color#',         () => { nToRGB(); theCtx.fillStyle = toRGB(); });
   forthPrim('stroke',         () => { getRGB();  theCtx.strokeStyle = toRGB(); });
@@ -333,7 +335,8 @@ function registerGraphicsWords() {
     let sprite = sprites[pop()];
     if (sprite?.complete) { theCtx.drawImage(sprite, x, y, w, h); }
   });
-  forthPrim('frm-addr', () => { frmAddr=pop(); });
+  forthPrim('frm-addr!', () => { frmAddr=pop(); });
+  forthPrim('frm-addr@', () => { push(frmAddr); });
   forthPrim('next-frame',() =>{ requestAnimationFrame(nextFrame); });
 }
 
@@ -597,13 +600,33 @@ blocks[12] = `( Block 12: A small bouncing-line demo. )
 var x1   var y1
 var vx0  var vy0  
 var vx1  var vy1
-var r    var b     var g
+var r    var g     var b
 canvas-width  const cw   canvas-height const ch
+
+40 const #lines
+var x0h  #lines 1- allot ( history for x0 )
+var x1h  #lines 1- allot ( history for x1 )
+var y0h  #lines 1- allot ( history for y0 )
+var y1h  #lines 1- allot ( history for y1 )
+var rgbh #lines 1- allot ( history for rgb )
+
+: rgb>n ( --n )  r @ 256 * g @ + 256 * b @ + ;
+: n>rgb ( n-- )  256 /mod swap b ! 256 /mod r ! g ! ;
+
+: hi    ( n--m )  #lines mod ;
+: h++   ( -- )    t@ 1+ hi t! ;
+: x0h!  ( -- )  x@    x0h  t@ + ! ;  : x0h@  ( i--n )  x0h  + @ ;
+: x1h!  ( -- )  x1 @  x1h  t@ + ! ;  : x1h@  ( i--n )  x1h  + @ ;
+: y0h!  ( -- )  y@    y0h  t@ + ! ;  : y0h@  ( i--n )  y0h  + @ ;
+: y1h!  ( -- )  y1 @  y1h  t@ + ! ;  : y1h@  ( i--n )  y1h  + @ ;
+: rgbh! ( -- )  rgb>n rgbh t@ + ! ;  : rgbh@ ( i--n )  rgbh + @ ;
+: h!    ( -- )  h++ x0h! y0h! x1h! y1h! rgbh! ;
+: h.    ( n-- ) dup x0h@ . dup y0h@ . dup x1h@ . dup y1h@ . rgbh@ . ;
 
 : reset-lines ( -- )
    40 x!     20 y!      500 x1 !  300 y1 !
     5 vx0 !  -3 vy0 !    -4 vx1 !   4 vy1 !
-    0 r !    85 b !     170 g ! ;
+    0 r !    85 g !     170 b ! ;
 reset-lines 
 
 : clamp-x0 ( -- )  x@ 0 < if 0 x! vx0 @ negate vx0 ! then
@@ -624,19 +647,27 @@ reset-lines
   clamp-x0  clamp-y0  clamp-x1  clamp-y1 ;
 
 : next-color ( -- )
-  r @ 1+ 256 mod r !
-  b @ 1+ 256 mod b !
-  g @ 1+ 256 mod g ! ;
+  r @  5 + 256 mod r !
+  g @ 10 + 256 mod g !
+  b @ 15 + 256 mod b ! ;
 
 : draw-line ( -- )
-  clear r @ b @ g @ stroke
+  r @ g @ b @ pen-color
   x@ y@ pen-up   ttl-goto
   x1 @ y1 @ pen-down ttl-goto ;
 
-: one-frame ( -- ) next-color step draw-line ;
+: draw-hline ( i-- ) hi >t
+  t@ rgbh@ pen-color#
+  t@ x0h@  t@ y0h@ pen-up   ttl-goto
+  t@ x1h@  t@ y1h@ pen-down ttl-goto <t ;
+
+: draw-hlines ( -- ) #lines for i 1+ t@ + draw-hline  next ;
+
+: one-frame ( -- ) clear draw-hlines next-color step draw-line h! ;
 
 ( next-frame queues the next frame to be drawn, and returns )
 ( frm-addr holds the address of word executed by next-frame )
-here frm-addr
+here frm-addr!
 : lines ( -- ) one-frame  next-frame ;
+: line-demo ( -- )  0 >t lines ;
 `;
