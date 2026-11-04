@@ -38,6 +38,7 @@ function initForth() {
   forthPrim('<',        () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
   forthPrim('=',        () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
   forthPrim('>',        () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+  forthPrim('<>',       () => { t=pop(); setTOS((TOS()!==t) ? -1 : 0); });
   forthPrim('0=',       () => { setTOS(TOS() === 0 ? -1 : 0); });
   forthPrim('and',      () => { t=pop(); setTOS(TOS() & t); });
   forthPrim('or',       () => { t=pop(); setTOS(TOS() | t); });
@@ -528,7 +529,10 @@ blocks[1] = `( Utility and benchmark words )
 : @x  ( --n ) x@ @ ;      : @x+ ( --n ) x@ dup 1+ x! @ ;
 : @y  ( --n ) y@ @ ;      : @y+ ( --n ) y@ dup 1+ y! @ ;
 : @z  ( --n ) z@ @ ;      : @z+ ( --n ) z@ dup 1+ z! @ ;
+: z@+ ( --n ) z@ dup 1+ z! ;
 : >xy ( x y -- ) >y >x ;  : <xy ( -- )  <x <y ;
+: min ( a b -- min )  over over > if swap then drop ;
+: max ( a b -- max )  over over < if swap then drop ;
 : lap timer ;             : .lap timer swap - . ;
 : ? @ . ;     : k 1000 * ;    : mil k k ;
 : bm lap swap for next .lap ;
@@ -605,10 +609,11 @@ blocks[12] = `( Block 12: A bouncing-lines demo. )
 var x1   var y1   ( the 'to' point )
 var vx0  var vy0  ( velocity for the 'from' point )
 var vx1  var vy1  ( velocity for the 'to' point )
-var r    var g     var b ( line color components )
-canvas-width  const cw   canvas-height const ch
+var r    var g    var b ( line color components )
+canvas-width  const cw
+canvas-height const ch
 
-40 const #lines
+25 const #lines
 var x0h  #lines 1- allot ( history for x0 )
 var x1h  #lines 1- allot ( history for x1 )
 var y0h  #lines 1- allot ( history for y0 )
@@ -623,12 +628,10 @@ var rgbh #lines 1- allot ( history for rgb )
 : y0h!  ( -- )  y@    y0h  t@ + ! ;  : y0h@  ( i--n )  y0h  + @ ;
 : y1h!  ( -- )  y1 @  y1h  t@ + ! ;  : y1h@  ( i--n )  y1h  + @ ;
 : rgbh! ( -- )  rgb>n rgbh t@ + ! ;  : rgbh@ ( i--n )  rgbh + @ ;
-: h++   ( -- )  t@ 1+ #lines mod t! ;
-: h!    ( -- )  h++ x0h! y0h! x1h! y1h! rgbh! ;
-: h.    ( n-- ) dup x0h@ . dup y0h@ . dup x1h@ . dup y1h@ . rgbh@ . ;
+: h!    ( -- )  t@ 1+ #lines mod t!  x0h! y0h! x1h! y1h! rgbh! ;
 
 : reset-lines ( -- )
-   40 x!     20 y!      500 x1 !  300 y1 !
+   41 x!     19 y!      433 x1 !  311 y1 !
     5 vx0 !  -3 vy0 !    -4 vx1 !   4 vy1 !
     0 r !    85 g !     170 b ! ;
 reset-lines 
@@ -651,22 +654,17 @@ reset-lines
   clamp-x0  clamp-y0  clamp-x1  clamp-y1 ;
 
 : next-color ( -- )
-  r @  7 + 256 mod r !
-  g @ 11 + 256 mod g !
-  b @ 17 + 256 mod b ! ;
-
-: draw-line ( -- )
-  r @ g @ b @ pen-color
-  x@ y@ pen-up   ttl-goto
-  x1 @ y1 @ pen-down ttl-goto ;
+  r @ 11 + 256 mod r !
+  g @ 19 + 256 mod g !
+  b @ 23 + 256 mod b ! ;
 
 : draw-hline ( i-- ) #lines mod z!
   z@ rgbh@ pen-color#
   z@ x0h@  z@ y0h@  pen-up    ttl-goto
   z@ x1h@  z@ y1h@  pen-down  ttl-goto ;
 
-: draw-hlines ( -- ) #lines for i 1+ t@ + draw-hline  next ;
-: one-frame ( -- ) clear draw-hlines next-color step draw-line h! ;
+: draw-hlines ( -- ) t@ #lines for 1+ dup draw-hline next drop ;
+: one-frame   ( -- ) next-color step h! clear draw-hlines ;
 
 ( next-frame requests the canvas to be redrawn, and returns )
 ( frame-xt holds the address of word to be executed by next-frame )
@@ -675,4 +673,5 @@ here lines-xt !
 : lines-go ( -- )  lines-xt @ frame-xt! lines ;
 : lines-stop ( -- )  0 frame-xt! ;
 : lines-demo ( -- )  0 t! lines-go ;
+: ld 3 line-width lines-demo ; : ls lines-stop ;  : lg lines-go ;
 `;
