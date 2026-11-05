@@ -519,25 +519,26 @@ blocks[0] = `block | Description
   10  | Turtle graphics support
   11  | Turtle graphics documentation
   12  | Bounding lines demo
+  13  | Bounding ball demo
 `;
 
 blocks[1] = `( Utility and benchmark words )
 : version s" JS-Forth v2026.11.07" ;  : cr 10 emit ;
+: z@+ ( --n ) z@ dup 1+ z! ;
 : >x  ( n-- ) x@ >t x! ;  : <x  ( -- )  t> x! ;
 : >y  ( n-- ) y@ >t y! ;  : <y  ( -- )  t> y! ;
 : >z  ( n-- ) z@ >t z! ;  : <z  ( -- )  t> z! ;
 : @x  ( --n ) x@ @ ;      : @x+ ( --n ) x@ dup 1+ x! @ ;
 : @y  ( --n ) y@ @ ;      : @y+ ( --n ) y@ dup 1+ y! @ ;
-: @z  ( --n ) z@ @ ;      : @z+ ( --n ) z@ dup 1+ z! @ ;
-: z@+ ( --n ) z@ dup 1+ z! ;
+: @z  ( --n ) z@ @ ;      : @z+ ( --n ) z@+ @ ;
 : >xy ( x y -- ) >y >x ;  : <xy ( -- )  <x <y ;
+: lap timer ;             : .lap timer swap - . ;
 : min ( a b -- min )  over over > if swap then drop ;
 : max ( a b -- max )  over over < if swap then drop ;
-: lap timer ;             : .lap timer swap - . ;
 : ? @ . ;     : k 1000 * ;    : mil k k ;
 : bm lap swap for next .lap ;
 : dump swap >x for x@ . ." - " @x+ . cr next <x ;
-2 load  10 load  ( 20 load )  12 load
+2 load  10 load  ( 20 load 12  load  13 load )
 `;
 
 blocks[2] = `( Geometry words )
@@ -582,6 +583,7 @@ var lines-xt
     ttl-goto 0 ttl-angle ! ;
 : ttl-square ( size -- ) pen-down? >t
     pen-down 4 for dup ttl-fw 90 ttl-rt next drop t> pen-state ! ;
+: ttl-ball ( radius-- ) pen-down? >t >t ttl-x @ ttl-y @ t> circle t> pen-state ! ;
 ttl-home
 `;
 
@@ -674,4 +676,33 @@ here lines-xt !
 : lines-stop ( -- )  0 frame-xt! ;
 : lines-demo ( -- )  0 t! lines-go ;
 : ld 3 line-width lines-demo ; : ls lines-stop ;  : lg lines-go ;
+`;
+
+blocks[13] = `( Block 13: A bouncing-ball demo. )
+( 'x' and 'y' are the ball center, 'z' is the radius )
+canvas-width  const cw
+canvas-height const ch
+
+var vx  var vy  ( velocity for the center point )
+var bball-xt  ( ball frame execution address )
+
+: clamp-x ( -- )  x@ z@ - 0  < if z@ x! vx @ negate vx ! then
+  x@ z@ + cw > if cw z@ - x! vx @ negate vx ! then ;
+
+: clamp-y ( -- )  y@ z@ - 0 < if z@ y! vy @ negate vy ! then
+  y@ z@ + ch > if ch z@ - y! vy @ negate vy ! then ;
+
+: reset-bball ( -- ) 50 x! 50 y!  25 z!  13 vx ! 7 vy ! ;
+: step ( -- ) x@ vx @ + x!  y@ vy @ + y!   clamp-x  clamp-y ;
+: draw-ball ( -- )  pen-up x@ y@ ttl-goto z@ ttl-ball ;
+: one-frame   ( -- ) step clear draw-ball  ;
+
+( next-frame requests the canvas to be redrawn, and returns )
+( frame-xt holds the address of word to be executed by next-frame )
+here bball-xt !
+: bball ( -- ) one-frame  next-frame ;
+: bball-go ( -- )  bball-xt @ frame-xt! bball ;
+: bball-stop ( -- ) 0 frame-xt! ;
+: bball-demo ( -- ) 0xff3311 color# reset-bball bball-go ;
+: lb bball-demo ; : ls bball-stop ;  : lg bball-go ;
 `;
