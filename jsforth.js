@@ -7,7 +7,7 @@ const rstk =  60, dse = rstk-1;    // Return stack
 const tstk = 100, rse = tstk-1;    // Temp stack
 const lstk = 170, tse = lstk-1;    // Loop stack
 let last = -1, pc = -1, op, here = hereStart;
-let varA = 0, varB = 0, L0 = 0, L1 = 0, L2 = 0;
+let varX = 0, varY = 0, varZ = 0, L0 = 0, L1 = 0, L2 = 0;
 let tib = '', wd = '', toIn = 0, tibLen = 0, num;
 
 // ***************************************************************
@@ -25,79 +25,85 @@ function inner(start) {
 
 // ***************************************************************
 function initForth() {
-  mem[dstk] = dstk; mem[rstk] = rstk; mem[tstk] = tstk;
+  mem[dstk] = dstk; mem[rstk] = rstk; mem[tstk] = tstk+1;
   mem[lstk] = lstk; mem[base] = 10,   mem[state] = 0;
-  forthPrim('+',      () => { t=pop(); setTOS(TOS() + t); });
-  forthPrim('-',      () => { t=pop(); setTOS(TOS() - t); });
-  forthPrim('*',      () => { t=pop(); setTOS(TOS() * t); });
-  forthPrim('/',      () => { t=pop(); setTOS(TOS() / t); });
-  forthPrim('negate', () => { setTOS(-TOS()); });
-  forthPrim('/mod',   () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
-  forthPrim('mod/',   () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
-  forthPrim('<',      () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
-  forthPrim('=',      () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
-  forthPrim('>',      () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
-  forthPrim('0=',     () => { setTOS(TOS() === 0 ? -1 : 0); });
-  forthPrim('and',    () => { t=pop(); setTOS(TOS() & t); });
-  forthPrim('or',     () => { t=pop(); setTOS(TOS() | t); });
-  forthPrim('xor',    () => { t=pop(); setTOS(TOS() ^ t); });
-  forthPrim('com',    () => { setTOS(~TOS()); });
-  forthPrim('dup',    () => { push(TOS()); });
-  forthPrim('drop',   () => { pop(); });
-  forthPrim('swap',   () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
-  forthPrim('over',   () => { n=NOS(); push(n); });
-  forthPrim('.s',     () => { type('('); doDotS(); type(' )');});
-  forthPrim('@',      () => { setTOS(mem[TOS()]); });
-  forthPrim('!',      () => { t=pop(); n=pop(); mem[t] = n; });
-  forthPrim(',',      () => { Comma(pop()); });
-  forthPrim('.NWB',   () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
-  forthPrim('.',      () => { doNWB(pop(),0,mem[base]); type(' ');});
-  forthPrim('for',    () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
-  forthPrim('i',      () => { push(L0); });
-  forthPrim('next',   () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
-  forthPrim('unloop', () => { unloop(); });
-  forthPrim('emit',   () => { emit(pop()); });
-  forthPrim('exit',   () => { exit(); });
-  forthPrim('type',   () => { doType(); });
-  forthPrim('words',  () => { doWords(); });
-  forthPrim('var',    () => { doVar(); });
-  forthPrim('allot',  () => { here += pop(); });
-  forthPrim('const',  () => { doConst(); });
-  forthPrim('>t',     () => { tPush(pop()); });
-  forthPrim('t@',     () => { push(mem[mem[tstk]]); });
-  forthPrim('t!',     () => { mem[mem[tstk]] = pop(); });
-  forthPrim('t>',     () => { push(tPop()); });
-  forthPrim('<t',     () => { tPop(); });
-  forthPrim('a@',     () => { push(varA); });
-  forthPrim('a!',     () => { varA = pop(); });
-  forthPrim('b@',     () => { push(varB); });
-  forthPrim('b!',     () => { varB = pop(); });
-  forthPrim('1+',     () => { ++mem[mem[dstk]]; });
-  forthPrim('1-',     () => { --mem[mem[dstk]]; });
-  forthPrim('sin',    () => { t=pop(); push(Math.sin(t)); });   // sine
-  forthPrim('cos',    () => { t=pop(); push(Math.cos(t)); });   // cosine
-  forthPrim('tan',    () => { t=pop(); push(Math.tan(t)); });   // tangent
-  forthPrim('atan',   () => { t=pop(); push(Math.atan(t)); });  // arctangent
-  forthPrim('floor',  () => { t=pop(); push(Math.floor(t)); }); // floor
-  forthPrim('sqrt',   () => { t=pop(); push(Math.sqrt(t)); });  // square-root
-  forthPrim('timer',  () => { push(performance.now()); });
-  forthPrim('here',   () => { push(here); });
-  forthPrim('load',   () => { t=pop(); doLoad(t); });
-  forthPrim('list',   () => { t=pop(); listForthBlock(t); });
-  forthPrim('sin',    () => { setTOS(Math.sin(TOS())); });
-  forthPrim('cos',    () => { setTOS(Math.cos(TOS())); });
-  forthPrim('html!',  () => { t=pop(); n=pop(); setHTMLValue(t, n); });
-  forthPrim('base',   () => { push(base); });
-  forthPrim('state',  () => { push(state); });
-  forthPrim('immediate', () => { dict[last].imm = true; });
-  forthImm('s"',      () => { sQuote(); });
-  forthImm('."',      () => { sQuote(); if (getState() == 1) { Comma(doType); } else { doType(); } });
-  forthImm('if',      () => { Comma(jmpz); push(here); Comma(0); });
-  forthImm('then',    () => { mem[pop()] = here; });
-  forthImm('begin',   () => { push(here); });
-  forthImm('while',   () => { Comma(jmpnz); Comma(pop()); });
-  forthImm('until',   () => { Comma(jmpz);  Comma(pop()); });
-  forthImm('again',   () => { Comma(jmp);   Comma(pop()); });
+  forthPrim('+',        () => { t=pop(); setTOS(TOS() + t); });
+  forthPrim('-',        () => { t=pop(); setTOS(TOS() - t); });
+  forthPrim('*',        () => { t=pop(); setTOS(TOS() * t); });
+  forthPrim('/',        () => { t=pop(); setTOS(TOS() / t); });
+  forthPrim('mod',      () => { t=pop(); n=TOS(); setTOS(n%t); });
+  forthPrim('/mod',     () => { t=TOS(); n=NOS(); setTOS(Math.floor(n/t)); setNOS(n%t); });
+  forthPrim('mod/',     () => { t=TOS(); n=NOS(); setNOS(Math.floor(n/t)); setTOS(n%t); });
+  forthPrim('negate',   () => { setTOS(-TOS()); });
+  forthPrim('<',        () => { t=pop(); setTOS((TOS() < t) ? -1 : 0); });
+  forthPrim('=',        () => { t=pop(); setTOS((TOS()===t) ? -1 : 0); });
+  forthPrim('>',        () => { t=pop(); setTOS((TOS() > t) ? -1 : 0); });
+  forthPrim('<>',       () => { t=pop(); setTOS((TOS()!==t) ? -1 : 0); });
+  forthPrim('0=',       () => { setTOS(TOS() === 0 ? -1 : 0); });
+  forthPrim('and',      () => { t=pop(); setTOS(TOS() & t); });
+  forthPrim('or',       () => { t=pop(); setTOS(TOS() | t); });
+  forthPrim('xor',      () => { t=pop(); setTOS(TOS() ^ t); });
+  forthPrim('com',      () => { setTOS(~TOS()); });
+  forthPrim('dup',      () => { push(TOS()); });
+  forthPrim('drop',     () => { pop(); });
+  forthPrim('swap',     () => { n=NOS(); t=TOS(); setTOS(n); setNOS(t); });
+  forthPrim('over',     () => { n=NOS(); push(n); });
+  forthPrim('.s',       () => { type('('); doDotS(); type(' )');});
+  forthPrim('@',        () => { setTOS(mem[TOS()]); });
+  forthPrim('!',        () => { t=pop(); n=pop(); mem[t] = n; });
+  forthPrim(',',        () => { Comma(pop()); });
+  forthPrim('.NWB',     () => { b=pop(); w=pop(); doNWB(pop(),w,b); });
+  forthPrim('.',        () => { doNWB(pop(),0,mem[base]); type(' ');});
+  forthPrim('for',      () => { lPush(L2); lPush(L1); lPush(L0); L2=pc; L1=pop(); L0=0; });
+  forthPrim('i',        () => { push(L0); });
+  forthPrim('next',     () => { ++L0; if (L0<L1) pc=L2; else unloop(); });
+  forthPrim('unloop',   () => { unloop(); });
+  forthPrim('emit',     () => { emit(pop()); });
+  forthPrim('exit',     () => { exit(); });
+  forthPrim('type',     () => { doType(); });
+  forthPrim('words',    () => { doWords(); });
+  forthPrim('var',      () => { doVar(); });
+  forthPrim('allot',    () => { here += pop(); });
+  forthPrim('const',    () => { doConst(); });
+  forthPrim('>t',       () => { tPush(pop()); });
+  forthPrim('t@',       () => { push(mem[mem[tstk]]); });
+  forthPrim('t!',       () => { tPop(); tPush(pop()); });
+  forthPrim('t>',       () => { push(tPop()); });
+  forthPrim('<t',       () => { tPop(); });
+  forthPrim('x@',       () => { push(varX); });
+  forthPrim('x!',       () => { varX = pop(); });
+  forthPrim('y@',       () => { push(varY); });
+  forthPrim('y!',       () => { varY = pop(); });
+  forthPrim('z@',       () => { push(varZ); });
+  forthPrim('z!',       () => { varZ = pop(); });
+  forthPrim('1+',       () => { ++mem[mem[dstk]]; });
+  forthPrim('1-',       () => { --mem[mem[dstk]]; });
+  forthPrim('sin',      () => { t=pop(); push(Math.sin(t)); });   // sine
+  forthPrim('cos',      () => { t=pop(); push(Math.cos(t)); });   // cosine
+  forthPrim('tan',      () => { t=pop(); push(Math.tan(t)); });   // tangent
+  forthPrim('atan',     () => { t=pop(); push(Math.atan(t)); });  // arctangent
+  forthPrim('floor',    () => { t=pop(); push(Math.floor(t)); }); // floor
+  forthPrim('sqrt',     () => { t=pop(); push(Math.sqrt(t)); });  // square-root
+  forthPrim('rand',     () => { t=pop(); push(Math.random() * t); });  // random
+  forthPrim('rand-max', () => { t=pop(); push(Math.floor(Math.random() * t)); });  // random
+  forthPrim('timer',    () => { push(performance.now()); });
+  forthPrim('here',     () => { push(here); });
+  forthPrim('load',     () => { t=pop(); doLoad(t); });
+  forthPrim('list',     () => { t=pop(); listForthBlock(t); });
+  forthPrim('sin',      () => { setTOS(Math.sin(TOS())); });
+  forthPrim('cos',      () => { setTOS(Math.cos(TOS())); });
+  forthPrim('html!',    () => { t=pop(); n=pop(); setHTMLValue(t, n); });
+  forthPrim('base',     () => { push(base); });
+  forthPrim('state',    () => { push(state); });
+  forthPrim('immediate',() => { dict[last].imm = true; });
+  forthImm('s"',        () => { sQuote(); });
+  forthImm('."',        () => { sQuote(); if (getState() == 1) { Comma(doType); } else { doType(); } });
+  forthImm('if',        () => { Comma(jmpz); push(here); Comma(0); });
+  forthImm('then',      () => { mem[pop()] = here; });
+  forthImm('begin',     () => { push(here); });
+  forthImm('while',     () => { Comma(jmpnz); Comma(pop()); });
+  forthImm('until',     () => { Comma(jmpz);  Comma(pop()); });
+  forthImm('again',     () => { Comma(jmp);   Comma(pop()); });
   for (let f of forthInitFuncs) { f(); }
 }
 
@@ -251,6 +257,7 @@ initFunc(() => {
 function getRGB() { b=pop(), g=pop(), r=pop(); }
 function nToRGB() { let n=pop(); b=n & 0xFF; g=(n >> 8) & 0xFF; r=(n >> 16) & 0xFF; }
 function toRGB()  { return `rgb(${r},${g},${b})`; }
+function rgbToN()  { getRGB(); push((r << 16) | (g << 8) | b); }
 function resizeCanvas(w, h) { theCanvas.width = w; theCanvas.height = h; }
 function fillRect(x, y, w, h) { theCtx.fillRect(x, y, w, h); }
 function strokeRect(x, y, w, h) { theCtx.strokeRect(x, y, w, h); }
@@ -263,6 +270,7 @@ function registerGraphicsWords() {
   forthPrim('canvas-height!', () => { theCanvas.height = pop(); });
   forthPrim('resize-canvas',  () => { w=pop(), h=pop(); resizeCanvas(w, h); });
   forthPrim('clear',          () => { theCtx.clearRect(0, 0, theCanvas.width, theCanvas.height); });
+  forthPrim('rgb>n',          () => { rgbToN(); });
   forthPrim('color',          () => { getRGB();  theCtx.fillStyle = toRGB(); });
   forthPrim('color#',         () => { nToRGB(); theCtx.fillStyle = toRGB(); });
   forthPrim('stroke',         () => { getRGB();  theCtx.strokeStyle = toRGB(); });
@@ -330,6 +338,19 @@ function registerGraphicsWords() {
     let sprite = sprites[pop()];
     if (sprite?.complete) { theCtx.drawImage(sprite, x, y, w, h); }
   });
+  forthPrim('frame-xt!', () => { frameXt=pop(); });
+  forthPrim('frame-xt@', () => { push(frameXt); });
+  forthPrim('next-frame',() =>{ requestAnimationFrame(nextFrame); });
+}
+
+let frameXt = 0;
+function nextFrame() {
+  if (frameXt) {
+    mem[here+100] = colonWord;
+    mem[here+101] = frameXt;
+    mem[here+102] = undefined;
+    inner(here+100);
+  }
 }
 
  // *********************************************************************************
@@ -497,20 +518,27 @@ blocks[0] = `block | Description
    2  | Geometry
   10  | Turtle graphics support
   11  | Turtle graphics documentation
+  12  | Bounding lines demo
+  13  | Bounding ball demo
 `;
 
 blocks[1] = `( Utility and benchmark words )
-: version s" JS-Forth v2026.10.30" ;  : cr 10 emit ;
-: >a  ( n-- ) a@ >t a! ;  : <a  ( -- )  t> a! ;
-: >b  ( n-- ) b@ >t b! ;  : <b  ( -- )  t> b! ;
-: @a  ( --n ) a@ @ ;      : @a+ ( --n ) a@ dup 1+ a! @ ;
-: @b  ( --n ) b@ @ ;      : @b+ ( --n ) b@ dup 1+ b! @ ;
-: >ab ( a b -- ) >b >a ;  : <ab ( -- )  <a <b ;
-: k 1000 * ;              : mil k k ;
+: version s" JS-Forth v2026.11.07" ;  : cr 10 emit ;
+: z@+ ( --n ) z@ dup 1+ z! ;
+: >x  ( n-- ) x@ >t x! ;  : <x  ( -- )  t> x! ;
+: >y  ( n-- ) y@ >t y! ;  : <y  ( -- )  t> y! ;
+: >z  ( n-- ) z@ >t z! ;  : <z  ( -- )  t> z! ;
+: @x  ( --n ) x@ @ ;      : @x+ ( --n ) x@ dup 1+ x! @ ;
+: @y  ( --n ) y@ @ ;      : @y+ ( --n ) y@ dup 1+ y! @ ;
+: @z  ( --n ) z@ @ ;      : @z+ ( --n ) z@+ @ ;
+: >xy ( x y -- ) >y >x ;  : <xy ( -- )  <x <y ;
 : lap timer ;             : .lap timer swap - . ;
+: min ( a b -- min )  over over > if swap then drop ;
+: max ( a b -- max )  over over < if swap then drop ;
+: ? @ . ;     : k 1000 * ;    : mil k k ;
 : bm lap swap for next .lap ;
-: dump swap >a for a@ . ." - " @a+ . cr next <a ;
-2 load  10 load  20 load
+: dump swap >x for x@ . ." - " @x+ . cr next <x ;
+2 load  10 load  ( 20 load 12  load  13 load )
 `;
 
 blocks[2] = `( Geometry words )
@@ -529,8 +557,10 @@ blocks[2] = `( Geometry words )
 blocks[10] = `( Turtle graphics support, ttl => turtle )
 var ttl-x       var ttl-y
 var ttl-angle   var pen-state
+var lines-xt
 
-: pen-color ( rgb-- ) stroke# ;
+: pen-color  ( r g b-- ) stroke ;
+: pen-color# ( rgb-- )   stroke# ;
 : pen-up    ( -- )    0 pen-state ! ;
 : pen-down  ( -- )   -1 pen-state ! ;
 : pen-down? ( -- n )  pen-state @ ;
@@ -541,10 +571,10 @@ var ttl-angle   var pen-state
     pen-down? if ttl-x @ ttl-y @ line-to stroke-path then ;
 
 : ttl-fw ( distance -- )
-    >b ttl-angle @ deg>rad >a
-    ttl-x @ a@ sin b@ * +
-    ttl-y @ a@ cos b@ * -
-    ttl-goto <a <b ;
+    >y ttl-angle @ deg>rad >x
+    ttl-x @ x@ sin y@ * +
+    ttl-y @ x@ cos y@ * -
+    ttl-goto <x <y ;
   
 : ttl-rt ( angle -- ) ttl-angle @ + ttl-angle ! ;
 : ttl-lt ( angle -- ) negate ttl-rt ;
@@ -553,6 +583,7 @@ var ttl-angle   var pen-state
     ttl-goto 0 ttl-angle ! ;
 : ttl-square ( size -- ) pen-down? >t
     pen-down 4 for dup ttl-fw 90 ttl-rt next drop t> pen-state ! ;
+: ttl-ball ( radius-- ) pen-down? >t >t ttl-x @ ttl-y @ t> circle t> pen-state ! ;
 ttl-home
 `;
 
@@ -567,8 +598,111 @@ ttl-lt     ( deg-- )   turn left
 ttl-home   ( -- )      move to home position (canvas center)
 ttl-square ( size-- )  draw a square
 pen-color  ( r g b-- ) set pen color
+pen-color# ( rgb-- )   set pen color
 pen-state  ( --addr )  pen state (0 => up, -1 => down)
 pen-up     ( -- )      lift pen up (not drawing)
 pen-down   ( -- )      put pen down (drawing)
 pen-down?  ( --f )     f: TRUE (-1) if pen is down
+`;
+
+blocks[12] = `( Block 12: A bouncing-lines demo. )
+
+( built-in 'x' and 'y' is the 'from' point )
+var x1   var y1   ( the 'to' point )
+var vx0  var vy0  ( velocity for the 'from' point )
+var vx1  var vy1  ( velocity for the 'to' point )
+var r    var g    var b ( line color components )
+canvas-width  const cw
+canvas-height const ch
+
+25 const #lines
+var x0h  #lines 1- allot ( history for x0 )
+var x1h  #lines 1- allot ( history for x1 )
+var y0h  #lines 1- allot ( history for y0 )
+var y1h  #lines 1- allot ( history for y1 )
+var rgbh #lines 1- allot ( history for rgb )
+
+: rgb>n ( --n )  r @ 256 * g @ + 256 * b @ + ;
+: n>rgb ( n-- )  256 /mod swap b ! 256 /mod r ! g ! ;
+
+: x0h!  ( -- )  x@    x0h  t@ + ! ;  : x0h@  ( i--n )  x0h  + @ ;
+: x1h!  ( -- )  x1 @  x1h  t@ + ! ;  : x1h@  ( i--n )  x1h  + @ ;
+: y0h!  ( -- )  y@    y0h  t@ + ! ;  : y0h@  ( i--n )  y0h  + @ ;
+: y1h!  ( -- )  y1 @  y1h  t@ + ! ;  : y1h@  ( i--n )  y1h  + @ ;
+: rgbh! ( -- )  rgb>n rgbh t@ + ! ;  : rgbh@ ( i--n )  rgbh + @ ;
+: h!    ( -- )  t@ 1+ #lines mod t!  x0h! y0h! x1h! y1h! rgbh! ;
+
+: reset-lines ( -- )
+   41 x!     19 y!      433 x1 !  311 y1 !
+    5 vx0 !  -3 vy0 !    -4 vx1 !   4 vy1 !
+    0 r !    85 g !     170 b ! ;
+reset-lines 
+
+: clamp-x0 ( -- )  x@ 0 < if 0 x! vx0 @ negate vx0 ! then
+  x@ cw > if cw x! vx0 @ negate vx0 ! then ;
+
+: clamp-y0 ( -- )  y@ 0 < if 0 y! vy0 @ negate vy0 ! then
+  y@ ch > if ch y! vy0 @ negate vy0 ! then ;
+
+: clamp-x1 ( -- )  x1 @ 0 < if 0 x1 ! vx1 @ negate vx1 ! then
+  x1 @ cw > if cw x1 ! vx1 @ negate vx1 ! then ;
+
+: clamp-y1 ( -- )  y1 @ 0 < if 0 y1 ! vy1 @ negate vy1 ! then
+  y1 @ ch > if ch y1 ! vy1 @ negate vy1 ! then ;
+
+: step ( -- )
+  x@   vx0 @ + x!     y@   vy0 @ + y!
+  x1 @ vx1 @ + x1 !   y1 @ vy1 @ + y1 !
+  clamp-x0  clamp-y0  clamp-x1  clamp-y1 ;
+
+: next-color ( -- )
+  r @ 11 + 256 mod r !
+  g @ 19 + 256 mod g !
+  b @ 23 + 256 mod b ! ;
+
+: draw-hline ( i-- ) #lines mod z!
+  z@ rgbh@ pen-color#
+  z@ x0h@  z@ y0h@  pen-up    ttl-goto
+  z@ x1h@  z@ y1h@  pen-down  ttl-goto ;
+
+: draw-hlines ( -- ) t@ #lines for 1+ dup draw-hline next drop ;
+: one-frame   ( -- ) next-color step h! clear draw-hlines ;
+
+( next-frame requests the canvas to be redrawn, and returns )
+( frame-xt holds the address of word to be executed by next-frame )
+here lines-xt !
+: lines ( -- ) one-frame  next-frame ;
+: lines-go ( -- )  lines-xt @ frame-xt! lines ;
+: lines-stop ( -- )  0 frame-xt! ;
+: lines-demo ( -- )  0 t! lines-go ;
+: ld 3 line-width lines-demo ; : ls lines-stop ;  : lg lines-go ;
+`;
+
+blocks[13] = `( Block 13: A bouncing-ball demo. )
+( 'x' and 'y' are the ball center, 'z' is the radius )
+canvas-width  const cw
+canvas-height const ch
+
+var vx  var vy  ( velocity for the center point )
+var bball-xt  ( ball frame execution address )
+
+: clamp-x ( -- )  x@ z@ - 0  < if z@ x! vx @ negate vx ! then
+  x@ z@ + cw > if cw z@ - x! vx @ negate vx ! then ;
+
+: clamp-y ( -- )  y@ z@ - 0 < if z@ y! vy @ negate vy ! then
+  y@ z@ + ch > if ch z@ - y! vy @ negate vy ! then ;
+
+: reset-bball ( -- ) 50 x! 50 y!  25 z!  13 vx ! 7 vy ! ;
+: step ( -- ) x@ vx @ + x!  y@ vy @ + y!   clamp-x  clamp-y ;
+: draw-ball ( -- )  pen-up x@ y@ ttl-goto z@ ttl-ball ;
+: one-frame   ( -- ) step clear draw-ball  ;
+
+( next-frame requests the canvas to be redrawn, and returns )
+( frame-xt holds the address of word to be executed by next-frame )
+here bball-xt !
+: bball ( -- ) one-frame  next-frame ;
+: bball-go ( -- )  bball-xt @ frame-xt! bball ;
+: bball-stop ( -- ) 0 frame-xt! ;
+: bball-demo ( -- ) 0xff3311 color# reset-bball bball-go ;
+: lb bball-demo ; : ls bball-stop ;  : lg bball-go ;
 `;
